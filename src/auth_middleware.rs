@@ -1,4 +1,7 @@
-use std::{collections::BTreeMap, future::{ready, Ready}};
+use std::{
+    collections::BTreeMap,
+    future::{ready, Ready},
+};
 
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
@@ -43,56 +46,36 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        let header = match req.headers().get("Authorization") {
-            Some(header) => header,
-            None => {
+        let token = req
+            .headers()
+            .get("Authorization")
+            .and_then(|header| header.to_str().ok())
+            .and_then(|header| {
+                let parts = header.splitn(2, " ").collect::<Vec<&str>>();
+                if parts.len() == 2 && (parts[0] == "Bearer" || parts[0] == "bearer") {
+                    Some(parts[1])
+                } else {
+                    None
+                }
+            });
+
+        if let Some(token) = token {
+            let key_string = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+            let key: Hmac<Sha256> = hmac::Hmac::new_from_slice(&key_string.as_bytes()).unwrap();
+
+            let claims: Result<BTreeMap<String, String>, _> = token.verify_with_key(&key);
+            if let Ok(claims) = claims {
+                println!("Claims: {:?}", claims);
+            } else {
                 return Box::pin(async move {
                     let res = req.into_response(HttpResponse::Unauthorized().finish());
                     return Ok(res);
                 });
             }
-        };
-
-        let header = match header.to_str() {
-            Ok(header) => header,
-            Err(_) => {
-                return Box::pin(async move {
-                    let res = req.into_response(HttpResponse::Unauthorized().finish());
-                    return Ok(res);
-                });
-            }
-        };
-        let header_parts = header.splitn(2, " ").collect::<Vec<&str>>();
-        let token = match (header_parts.first(), header_parts.last()) {
-            (Some(&"Bearer"), Some(&token)) | (Some(&"bearer"), Some(&token)) => token,
-            _ => {
-                return Box::pin(async move {
-                    let res = req.into_response(HttpResponse::Unauthorized().finish());
-                    return Ok(res);
-                });
-            }
-        };
-
-        let key_string = std::env::var("JWT_SECRET").unwrap();
-        let key: Hmac<Sha256> = hmac::Hmac::new_from_slice(&key_string.as_bytes()).unwrap();
-
-        let claims: BTreeMap<String, String> = match token.verify_with_key(&key) {
-            Ok(b) => b,
-            Err(e) => {
-                println!("Failed to verify key: {}", e);
-                return Box::pin(async move {
-                    let res = req.into_response(HttpResponse::Unauthorized().finish());
-                    return Ok(res);
-                });
-            }
-        };
-
-        println!("Claims: {:?}", claims);
+        }
 
         let fut = self.service.call(req);
 
-        Box::pin(async move {
-            Ok(fut.await?)
-        })
+        Box::pin(async move { Ok(fut.await?) })
     }
 }
