@@ -448,10 +448,14 @@ dependencies = [
  "actix-web",
  "actix-ws",
  "chrono",
+ "futures-util",
+ "hmac",
+ "jwt",
  "mongodb",
  "serde",
  "serde_json",
  "server",
+ "sha2",
 ]
 
 [[package]]
@@ -953,6 +957,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1868808506b929d7b0cfa8f75951347aa71bb21144b7791bae35d9bccfcfe37a"
 dependencies = [
  "wasm-bindgen",
+]
+
+[[package]]
+name = "jwt"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6204285f77fe7d9784db3fdc449ecce1a0114927a51d5a41c4c7a292011c015f"
+dependencies = [
+ "base64 0.13.1",
+ "crypto-common",
+ "digest",
+ "hmac",
+ "serde",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]

@@ -1,7 +1,11 @@
-use actix_web::{web, App, HttpServer};
+use actix_web::{
+    web::{self, scope},
+    App, HttpServer,
+};
 
 use mongodb::Client;
 use server::guild::Guild;
+mod auth_middleware;
 mod data_access;
 mod endpoints;
 use data_access::guild_repository::GuildRepository;
@@ -21,7 +25,11 @@ async fn main() -> std::io::Result<()> {
                 client.database("tranquility").collection::<Guild>("guilds"),
             )))
             .service(endpoints::websocket_endpoints())
-            .service(endpoints::guild_endpoints())
+            .service(
+                scope("/api")
+                    .wrap(auth_middleware::Auth)
+                    .service(endpoints::guild_endpoints()),
+            )
     })
     .bind(("127.0.0.1", 8080))?
     .run()
