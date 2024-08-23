@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use actix_web::{get, post, web, HttpResponse};
 use server::guild::Guild;
 
@@ -18,7 +20,9 @@ pub async fn get_guilds(repository: web::Data<GuildRepository>) -> HttpResponse 
 pub async fn get_guild(
     repository: web::Data<GuildRepository>,
     path: web::Path<String>,
+    claims: web::ReqData<BTreeMap<String, String>>
 ) -> HttpResponse {
+    println!("Claims: {:?}", claims.contains_key("sub"));
     match repository.find(&path).await {
         Ok(Some(guild)) => HttpResponse::Ok().json(guild),
         Ok(None) => HttpResponse::NotFound().finish(),

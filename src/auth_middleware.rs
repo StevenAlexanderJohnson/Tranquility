@@ -4,8 +4,7 @@ use std::{
 };
 
 use actix_web::{
-    dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    Error, HttpResponse,
+    dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform}, Error, HttpMessage, HttpResponse
 };
 use futures_util::future::LocalBoxFuture;
 use hmac::{Hmac, Mac};
@@ -66,6 +65,7 @@ where
             let claims: Result<BTreeMap<String, String>, _> = token.verify_with_key(&key);
             if let Ok(claims) = claims {
                 println!("Claims: {:?}", claims);
+                req.extensions_mut().insert(claims);
             } else {
                 return Box::pin(async move {
                     let res = req.into_response(HttpResponse::Unauthorized().finish());

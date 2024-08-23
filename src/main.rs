@@ -25,6 +25,7 @@ async fn main() -> std::io::Result<()> {
                 client.database("tranquility").collection::<Guild>("guilds"),
             )))
             .service(endpoints::websocket_endpoints())
+            .service(scope("/auth").service(endpoints::auth_endpoints()))
             .service(
                 scope("/api")
                     .wrap(auth_middleware::Auth)
