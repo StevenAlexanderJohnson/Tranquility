@@ -4,11 +4,11 @@ use actix_web::{
 };
 
 use mongodb::Client;
-use server::guild::Guild;
+use server::{auth_user::AuthUser, guild::Guild};
 mod auth_middleware;
 mod data_access;
 mod endpoints;
-use data_access::guild_repository::GuildRepository;
+use data_access::{auth_repository::AuthRepository, guild_repository::GuildRepository};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -23,6 +23,11 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(web::Data::new(GuildRepository::new(
                 client.database("tranquility").collection::<Guild>("guilds"),
+            )))
+            .app_data(web::Data::new(AuthRepository::new(
+                client
+                    .database("tranquility")
+                    .collection::<AuthUser>("auth"),
             )))
             .service(endpoints::websocket_endpoints())
             .service(scope("/auth").service(endpoints::auth_endpoints()))
