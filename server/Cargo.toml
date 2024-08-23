@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 serde = "1.0.208"
-serde_json = "1.0.125"
 chrono = { version ="0.4", features = ["serde"] }
 
 [dependencies.mongodb]

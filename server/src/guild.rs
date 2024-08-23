@@ -13,9 +13,3 @@ pub struct Guild {
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
-
-impl Guild {
-    fn to_json(&self) -> String {
-        serde_json::to_string(&self).unwrap()
-    }
-}
