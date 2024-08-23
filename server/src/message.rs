@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-#[derive(Debug)]
+use mongodb::bson::oid::ObjectId;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum ReactionType {
     Like,
     Dislike,
@@ -31,17 +34,18 @@ impl ReactionType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Message {
-    pub id: uuid::Uuid,
+    pub id: ObjectId,
     pub text: String,
-    pub author: uuid::Uuid,
+    pub author: ObjectId,
     pub reactions: HashMap<ReactionType, i32>,
-    pub thread: Option<uuid::Uuid>,
+    pub thread: Option<ObjectId>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct MessageSet {
     pub offset: usize,
     pub count: usize,
