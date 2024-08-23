@@ -31,9 +31,10 @@ impl GuildRepository {
         &self,
         member_id: &str,
     ) -> Result<Vec<Guild>, Box<dyn std::error::Error>> {
+        let object_id = ObjectId::from_str(member_id)?;
         let mut cursor = self
             .collection
-            .find(doc! {"members._id": member_id})
+            .find(doc! {"members._id": object_id})
             .await?;
 
         let mut output = vec![];
