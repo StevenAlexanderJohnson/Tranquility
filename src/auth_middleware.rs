@@ -61,7 +61,7 @@ where
 
         if let Some(token) = token {
             let key_string = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
-            let key: Hmac<Sha256> = hmac::Hmac::new_from_slice(&key_string.as_bytes()).unwrap();
+            let key: Hmac<Sha256> = hmac::Hmac::new_from_slice(key_string.as_bytes()).unwrap();
 
             let claims: Result<BTreeMap<String, String>, _> = token.verify_with_key(&key);
             if let Ok(claims) = claims {
@@ -70,13 +70,13 @@ where
             } else {
                 return Box::pin(async move {
                     let res = req.into_response(HttpResponse::Unauthorized().finish());
-                    return Ok(res);
+                    Ok(res)
                 });
             }
         }
 
         let fut = self.service.call(req);
 
-        Box::pin(async move { Ok(fut.await?) })
+        Box::pin(fut)
     }
 }
