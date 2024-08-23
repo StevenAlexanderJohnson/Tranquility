@@ -1,0 +1,9 @@
+[package]
+name = "chat"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+server = { path = "./server" }
+actix-web = "4"
+actix-ws = "0.3"

@@ -1,0 +1,41 @@
+use std::collections::HashSet;
+
+pub enum Intent {
+    GuildCreate,
+    GuildUpdate,
+    GuildDelete,
+    GuildRoleCreate,
+    GuildRoleUpdate,
+    GuildRoleDelete,
+    GuildMemberAdd,
+    GuildMemberUpdate,
+    GuildMemberRemove,
+    GuildBanAdd,
+    GuildBanRemove,
+    GuildEmojisUpdate,
+    GuildIntegrationsUpdate,
+    ChannelCreate,
+    ChannelUpdate,
+    ChannelDelete,
+    ChannelPinsUpdate,
+    MessageCreate,
+    MessageUpdate,
+    MessageDelete,
+    MessageDeleteBulk,
+    MessageReactionAdd,
+    MessageReactionRemove,
+    MessageReactionRemoveAll,
+    MessageReactionRemoveEmoji,
+    UserUpdate,
+    PresenceUpdate,
+    TypingStart,
+    VoiceStateUpdate,
+    VoiceServerUpdate,
+    WebhooksUpdate,
+}
+
+pub struct Role {
+    pub id: uuid::Uuid,
+    pub name: String,
+    pub intents: HashSet<Intent>,
+}
