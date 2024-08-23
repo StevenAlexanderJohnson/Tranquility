@@ -1,14 +1,15 @@
+mod auth_middleware;
+mod data_access;
+mod endpoints;
+mod jwt_handler;
+
 use actix_web::{
     web::{self, scope},
     App, HttpServer,
 };
-
+use data_access::{auth_repository::AuthRepository, guild_repository::GuildRepository};
 use mongodb::Client;
 use server::{auth_user::AuthUser, guild::Guild};
-mod auth_middleware;
-mod data_access;
-mod endpoints;
-use data_access::{auth_repository::AuthRepository, guild_repository::GuildRepository};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -30,7 +31,7 @@ async fn main() -> std::io::Result<()> {
                     .collection::<AuthUser>("auth"),
             )))
             .service(endpoints::websocket_endpoints())
-            .service(scope("/auth").service(endpoints::auth_endpoints()))
+            .service(endpoints::auth_endpoints())
             .service(
                 scope("/api")
                     .wrap(auth_middleware::Auth)

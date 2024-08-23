@@ -3,7 +3,9 @@ mod guild;
 mod websocket;
 
 pub fn auth_endpoints() -> actix_web::Scope {
-    actix_web::web::scope("/auth").service(auth::login)
+    actix_web::web::scope("/auth")
+        .service(auth::login)
+        .service(auth::register)
 }
 
 pub fn websocket_endpoints() -> actix_web::Scope {

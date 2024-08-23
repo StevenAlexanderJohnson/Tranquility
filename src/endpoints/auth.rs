@@ -1,7 +1,7 @@
-use actix_web::{post, web, HttpResponse};
+use actix_web::{cookie::Cookie, post, web, HttpResponse};
 use server::auth_user::AuthUser;
 
-use crate::data_access::auth_repository::AuthRepository;
+use crate::{data_access::auth_repository::AuthRepository, jwt_handler::generate_token};
 
 #[post("/login")]
 pub async fn login(
@@ -9,7 +9,18 @@ pub async fn login(
     repository: web::Data<AuthRepository>,
 ) -> HttpResponse {
     match repository.find(auth_user.into_inner()).await {
-        Ok(Some(_)) => HttpResponse::Ok().finish(),
+        Ok(Some(user)) => {
+            let jwt = match generate_token(&user) {
+                Ok(jwt) => jwt,
+                Err(e) => {
+                    println!("Failed to generate token: {}", e);
+                    return HttpResponse::InternalServerError().finish();
+                }
+            };
+            HttpResponse::Ok()
+                .cookie(Cookie::new("authorization", jwt))
+                .finish()
+        }
         Ok(None) => HttpResponse::Unauthorized().finish(),
         Err(e) => {
             println!("Failed to login: {}", e);

@@ -1,16 +1,13 @@
-use std::{
-    collections::BTreeMap,
-    future::{ready, Ready},
-};
-
+use crate::jwt_handler::verify_token;
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
     Error, HttpMessage, HttpResponse,
 };
 use futures_util::future::LocalBoxFuture;
-use hmac::{Hmac, Mac};
-use jwt::VerifyWithKey;
-use sha2::Sha256;
+use std::{
+    collections::BTreeMap,
+    future::{ready, Ready},
+};
 
 pub struct Auth;
 
@@ -60,10 +57,7 @@ where
             });
 
         if let Some(token) = token {
-            let key_string = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
-            let key: Hmac<Sha256> = hmac::Hmac::new_from_slice(key_string.as_bytes()).unwrap();
-
-            let claims: Result<BTreeMap<String, String>, _> = token.verify_with_key(&key);
+            let claims: Result<BTreeMap<String, String>, _> = verify_token(token);
             if let Ok(claims) = claims {
                 println!("Claims: {:?}", claims);
                 req.extensions_mut().insert(claims);
