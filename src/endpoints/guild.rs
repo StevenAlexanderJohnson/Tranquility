@@ -6,8 +6,15 @@ use server::guild::Guild;
 use crate::data_access::guild_repository::GuildRepository;
 
 #[get("/")]
-pub async fn get_guilds(repository: web::Data<GuildRepository>) -> HttpResponse {
-    match repository.find_member_guilds("1234").await {
+pub async fn get_guilds(
+    claims: web::ReqData<BTreeMap<String, String>>,
+    repository: web::Data<GuildRepository>,
+) -> HttpResponse {
+    let id = match claims.get("id") {
+        Some(id) => id,
+        None => return HttpResponse::Unauthorized().finish()
+    };
+    match repository.find_member_guilds(id).await {
         Ok(guilds) => HttpResponse::Ok().json(guilds),
         Err(e) => {
             println!("Failed to get guilds: {}", e);
@@ -22,7 +29,6 @@ pub async fn get_guild(
     path: web::Path<String>,
     claims: web::ReqData<BTreeMap<String, String>>,
 ) -> HttpResponse {
-    println!("Claims: {:?}", claims.contains_key("sub"));
     match repository.find(&path).await {
         Ok(Some(guild)) => HttpResponse::Ok().json(guild),
         Ok(None) => HttpResponse::NotFound().finish(),
