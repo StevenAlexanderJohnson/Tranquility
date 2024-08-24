@@ -1,2 +1,4 @@
 /target
 /server/**/Cargo.lock
+
+/**/config.toml
