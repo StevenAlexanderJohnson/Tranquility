@@ -1,10 +1,10 @@
 use std::str::FromStr;
 
 use mongodb::{
-    bson::{doc, oid::ObjectId},
+    bson::{self, doc, oid::ObjectId},
     Collection,
 };
-use server::guild::Guild;
+use server::{channel::Channel, guild::Guild};
 
 #[derive(Clone)]
 pub struct GuildRepository {
@@ -34,7 +34,7 @@ impl GuildRepository {
         let object_id = ObjectId::from_str(member_id)?;
         let mut cursor = self
             .collection
-            .find(doc! {"members._id": object_id})
+            .find(doc! {"members.member": object_id})
             .await?;
 
         let mut output = vec![];
@@ -44,5 +44,21 @@ impl GuildRepository {
         }
 
         Ok(output)
+    }
+
+    pub async fn add_channel(
+        &self,
+        guild_id: &str,
+        channel: Channel,
+    ) -> Result<Channel, Box<dyn std::error::Error>> {
+        let _ = self
+            .collection
+            .update_one(
+                doc! {"_id": ObjectId::from_str(guild_id)?, },
+                doc! {"$push": doc! {"channels": bson::to_bson(&channel)?}},
+            )
+            .await?;
+
+        Ok(channel)
     }
 }

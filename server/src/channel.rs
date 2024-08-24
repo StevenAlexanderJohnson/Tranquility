@@ -2,13 +2,13 @@ use std::collections::HashSet;
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
-use crate::message::MessageSet;
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Channel {
-    pub id: ObjectId,
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<ObjectId>,
     pub name: String,
-    pub message_count: u128,
-    pub message_set: MessageSet,
-    pub allowed_roles: HashSet<ObjectId>,
+    #[serde(default)]
+    pub message_count: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allowed_roles: Option<HashSet<ObjectId>>,
 }

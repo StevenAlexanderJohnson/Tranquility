@@ -1,7 +1,7 @@
 use actix_web::{
     cookie::{
         time::{Duration, OffsetDateTime},
-        Cookie, SameSite,
+        Cookie,
     },
     post, web, HttpResponse,
 };

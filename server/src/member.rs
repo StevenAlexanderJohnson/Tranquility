@@ -15,7 +15,7 @@ pub struct Member {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServerMember {
-    pub member: Member,
+    pub member: ObjectId,
     pub roles: HashSet<Role>,
     pub joined_date: chrono::DateTime<chrono::Utc>,
 }

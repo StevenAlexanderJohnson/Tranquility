@@ -1,4 +1,4 @@
-use crate::{channel::Channel, member::Member, role::Role};
+use crate::{channel::Channel, member::ServerMember, role::Role};
 use mongodb::bson;
 use serde::{Deserialize, Serialize};
 
@@ -8,9 +8,12 @@ pub struct Guild {
     pub id: Option<bson::oid::ObjectId>,
     pub name: String,
     pub description: String,
+    #[serde(default)]
     pub channels: Vec<Channel>,
-    pub members: Vec<Member>,
+    #[serde(default)]
+    pub members: Vec<ServerMember>,
+    #[serde(default)]
     pub roles: Vec<Role>,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
 }

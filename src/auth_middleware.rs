@@ -45,7 +45,7 @@ where
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let token = req
             .cookie("auth_token")
-            .and_then(|cookie| Some(cookie.value().to_string()));
+            .map(|cookie| cookie.value().to_string());
         if let Some(token) = token {
             let claims: Result<BTreeMap<String, String>, _> = verify_token(&token);
             if let Ok(claims) = claims {
