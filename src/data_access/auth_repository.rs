@@ -1,4 +1,4 @@
-use mongodb::{bson::doc, Collection};
+use mongodb::{bson::{doc, Bson}, Collection};
 use server::auth_user::AuthUser;
 
 #[derive(Clone)]
@@ -11,9 +11,9 @@ impl AuthRepository {
         Self { collection }
     }
 
-    pub async fn insert(&self, auth_user: AuthUser) -> Result<(), Box<dyn std::error::Error>> {
-        let _ = self.collection.insert_one(auth_user).await?;
-        Ok(())
+    pub async fn insert(&self, auth_user: AuthUser) -> Result<Bson, Box<dyn std::error::Error>> {
+        let result = self.collection.insert_one(auth_user).await?;
+        Ok(result.inserted_id)
     }
 
     pub async fn find(

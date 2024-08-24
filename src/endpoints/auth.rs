@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use actix_web::{
     cookie::{
         time::{Duration, OffsetDateTime},
@@ -5,9 +7,12 @@ use actix_web::{
     },
     post, web, HttpResponse,
 };
-use server::auth_user::AuthUser;
+use server::{auth_user::AuthUser, member::Member};
 
-use crate::{data_access::auth_repository::AuthRepository, jwt_handler::generate_token};
+use crate::{
+    data_access::{auth_repository::AuthRepository, member_repository::MemberRepository},
+    jwt_handler::generate_token,
+};
 
 #[post("/login")]
 pub async fn login(
@@ -42,14 +47,33 @@ pub async fn login(
 pub async fn register(
     auth_user: web::Json<AuthUser>,
     repository: web::Data<AuthRepository>,
+    member_repository: web::Data<MemberRepository>,
 ) -> HttpResponse {
     if auth_user.email.is_none() || auth_user.claims.is_some() {
         return HttpResponse::BadRequest().finish();
     }
-    match repository.insert(auth_user.into_inner()).await {
-        Ok(_) => HttpResponse::Ok().finish(),
+
+    let new_id = match repository.insert(auth_user.clone()).await {
+        Ok(id) => id,
         Err(e) => {
             println!("Failed to register: {}", e);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+
+    match member_repository
+        .insert(Member {
+            auth_id: new_id.as_object_id().unwrap(),
+            id: None,
+            friends: HashSet::new(),
+            name: auth_user.into_inner().username,
+            joined_date: chrono::Utc::now(),
+        })
+        .await
+    {
+        Ok(_) => HttpResponse::Created().finish(),
+        Err(e) => {
+            println!("{:?}", e);
             HttpResponse::InternalServerError().finish()
         }
     }

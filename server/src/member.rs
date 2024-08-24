@@ -7,7 +7,8 @@ use crate::role::Role;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Member {
-    pub id: ObjectId,
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<ObjectId>,
     pub auth_id: ObjectId,
     pub name: String,
     pub joined_date: chrono::DateTime<chrono::Utc>,
