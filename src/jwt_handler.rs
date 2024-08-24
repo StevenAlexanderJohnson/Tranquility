@@ -1,5 +1,5 @@
 use hmac::{Hmac, Mac};
-use jwt::{SignWithKey, ToBase64, VerifyWithKey};
+use jwt::{SignWithKey, VerifyWithKey};
 use server::auth_user::AuthUser;
 use sha2::Sha256;
 use std::collections::BTreeMap;
