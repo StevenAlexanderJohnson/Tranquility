@@ -8,6 +8,7 @@ use crate::role::Role;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Member {
     pub id: ObjectId,
+    pub auth_id: ObjectId,
     pub name: String,
     pub joined_date: chrono::DateTime<chrono::Utc>,
     pub friends: HashSet<ObjectId>,
