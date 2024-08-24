@@ -22,12 +22,11 @@ impl AuthRepository {
     ) -> Result<Option<AuthUser>, Box<dyn std::error::Error>> {
         let guild = self
             .collection
-            .find_one(doc! {
-            "$or": [
-                {"email": auth_user.email.unwrap_or("".to_string())},
-                {"username": auth_user.username}
+            .find_one(doc! { "$or": [
+                doc! {"email": auth_user.email.unwrap_or_default()},
+                doc! {"username": auth_user.username}
                 ],
-            "password": auth_user.password
+                "password": auth_user.password
             })
             .await?;
         Ok(guild)
