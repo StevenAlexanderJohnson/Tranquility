@@ -96,7 +96,7 @@ pub async fn create_guild(
     guild.updated_at = Some(chrono::Utc::now());
 
     match repository.insert(guild.into_inner()).await {
-        Ok(_) => HttpResponse::Ok().finish(),
+        Ok(_) => HttpResponse::Created().finish(),
         Err(e) => {
             println!("Failed to create guild: {}", e);
             HttpResponse::InternalServerError().finish()
