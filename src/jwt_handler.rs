@@ -1,5 +1,5 @@
 use hmac::{Hmac, Mac};
-use jwt::{SignWithKey, VerifyWithKey};
+use jwt::{SignWithKey, ToBase64, VerifyWithKey};
 use server::auth_user::AuthUser;
 use sha2::Sha256;
 use std::collections::BTreeMap;
@@ -19,6 +19,7 @@ pub fn generate_token(auth_user: &AuthUser) -> Result<String, Box<dyn std::error
     let mut claims = BTreeMap::new();
     claims.insert("username".to_string(), auth_user.username.clone());
     claims.insert("exp".to_string(), "3600".to_string());
+    claims.insert("id".to_string(), auth_user.id.unwrap().to_hex());
 
     if let Some(user_claims) = &auth_user.claims {
         for claim in user_claims.iter() {

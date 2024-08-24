@@ -44,22 +44,11 @@ where
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let token = req
-            .headers()
-            .get("Authorization")
-            .and_then(|header| header.to_str().ok())
-            .and_then(|header| {
-                let parts = header.splitn(2, " ").collect::<Vec<&str>>();
-                if parts.len() == 2 && (parts[0] == "Bearer" || parts[0] == "bearer") {
-                    Some(parts[1])
-                } else {
-                    None
-                }
-            });
-
+            .cookie("auth_token")
+            .and_then(|cookie| Some(cookie.value().to_string()));
         if let Some(token) = token {
-            let claims: Result<BTreeMap<String, String>, _> = verify_token(token);
+            let claims: Result<BTreeMap<String, String>, _> = verify_token(&token);
             if let Ok(claims) = claims {
-                println!("Claims: {:?}", claims);
                 req.extensions_mut().insert(claims);
             } else {
                 return Box::pin(async move {

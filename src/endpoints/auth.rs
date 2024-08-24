@@ -1,4 +1,10 @@
-use actix_web::{cookie::Cookie, post, web, HttpResponse};
+use actix_web::{
+    cookie::{
+        time::{Duration, OffsetDateTime},
+        Cookie, SameSite,
+    },
+    post, web, HttpResponse,
+};
 use server::auth_user::AuthUser;
 
 use crate::{data_access::auth_repository::AuthRepository, jwt_handler::generate_token};
@@ -17,9 +23,12 @@ pub async fn login(
                     return HttpResponse::InternalServerError().finish();
                 }
             };
-            HttpResponse::Ok()
-                .cookie(Cookie::new("authorization", jwt))
-                .finish()
+            let cookie = Cookie::build("auth_token", jwt)
+                .domain("localhost")
+                .path("/")
+                .expires(OffsetDateTime::now_utc().checked_add(Duration::minutes(2)))
+                .finish();
+            HttpResponse::Ok().cookie(cookie).finish()
         }
         Ok(None) => HttpResponse::Unauthorized().finish(),
         Err(e) => {
