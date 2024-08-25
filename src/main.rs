@@ -1,50 +1,18 @@
 mod auth_middleware;
-mod data_access;
 mod endpoints;
 mod jwt_handler;
 
-use actix_web::{
-    web::{self, scope},
-    App, HttpServer,
-};
-use data_access::{
-    auth_repository::AuthRepository, guild_repository::GuildRepository,
-    member_repository::MemberRepository,
-};
-use mongodb::Client;
-use server::{auth_user::AuthUser, guild::Guild, member::Member};
+use actix_web::{web::Data, App, HttpServer};
+use data_access::AuthRepository;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let uri =
-        std::env::var("MONGODB_URI").unwrap_or_else(|_| "mongodb://localhost:27017".to_string());
-    println!("Connecting to MongoDB at {}", uri);
-    let client = Client::with_uri_str(uri)
-        .await
-        .expect("Failed to connect to MongoDB");
+    let connection_pool = data_access::create_connection_pool(5).await;
 
     HttpServer::new(move || {
         App::new()
-            .app_data(web::Data::new(GuildRepository::new(
-                client.database("tranquility").collection::<Guild>("guilds"),
-            )))
-            .app_data(web::Data::new(AuthRepository::new(
-                client
-                    .database("tranquility")
-                    .collection::<AuthUser>("auth"),
-            )))
-            .app_data(web::Data::new(MemberRepository::new(
-                client
-                    .database("tranquility")
-                    .collection::<Member>("member"),
-            )))
-            .service(endpoints::websocket_endpoints())
+            .app_data(Data::new(AuthRepository::new(connection_pool.clone())))
             .service(endpoints::auth_endpoints())
-            .service(
-                scope("/api")
-                    .wrap(auth_middleware::Auth)
-                    .service(endpoints::guild_endpoints()),
-            )
     })
     .bind(("127.0.0.1", 8080))?
     .run()

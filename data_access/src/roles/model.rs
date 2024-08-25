@@ -1,4 +1,3 @@
-use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -34,7 +33,7 @@ pub enum Intent {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct Role {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
+    pub id: Option<i32>,
     pub name: String,
     pub intents: Vec<Intent>,
 }

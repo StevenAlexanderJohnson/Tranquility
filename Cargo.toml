@@ -15,5 +15,7 @@ jwt = "0.16"
 hmac = "0.12"
 sha2 = "0.10"
 
+data_access = {path = "./data_access"}
+
 [dependencies.mongodb]
 version = "3.0.1"

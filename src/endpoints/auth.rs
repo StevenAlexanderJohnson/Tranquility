@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use actix_web::{
     cookie::{
         time::{Duration, OffsetDateTime},
@@ -7,19 +5,23 @@ use actix_web::{
     },
     post, web, HttpResponse,
 };
-use server::{auth_user::AuthUser, member::Member};
+// use server::{auth_user::AuthUser, member::Member};
+use data_access::AuthUser;
 
-use crate::{
-    data_access::{auth_repository::AuthRepository, member_repository::MemberRepository},
-    jwt_handler::generate_token,
-};
+use crate::jwt_handler::generate_token;
 
 #[post("/login")]
 pub async fn login(
     auth_user: web::Json<AuthUser>,
-    repository: web::Data<AuthRepository>,
+    repository: web::Data<data_access::AuthRepository>,
 ) -> HttpResponse {
-    match repository.find(auth_user.into_inner()).await {
+    match repository
+        .find(
+            auth_user.username.to_string(),
+            auth_user.password.to_string(),
+        )
+        .await
+    {
         Ok(Some(user)) => {
             let jwt = match generate_token(&user) {
                 Ok(jwt) => jwt,
@@ -46,35 +48,19 @@ pub async fn login(
 #[post("/register")]
 pub async fn register(
     auth_user: web::Json<AuthUser>,
-    repository: web::Data<AuthRepository>,
-    member_repository: web::Data<MemberRepository>,
+    repository: web::Data<data_access::AuthRepository>,
 ) -> HttpResponse {
     if auth_user.email.is_none() || auth_user.claims.is_some() {
         return HttpResponse::BadRequest().finish();
     }
 
-    let new_id = match repository.insert(auth_user.clone()).await {
-        Ok(id) => id,
+    let inserted_user = match repository.insert(&auth_user.into_inner()).await {
+        Ok(user) => user,
         Err(e) => {
-            println!("Failed to register: {}", e);
+            println!("{:?}", e);
             return HttpResponse::InternalServerError().finish();
         }
     };
 
-    match member_repository
-        .insert(Member {
-            auth_id: new_id.as_object_id().unwrap(),
-            id: None,
-            friends: HashSet::new(),
-            name: auth_user.into_inner().username,
-            joined_date: chrono::Utc::now(),
-        })
-        .await
-    {
-        Ok(_) => HttpResponse::Created().finish(),
-        Err(e) => {
-            println!("{:?}", e);
-            HttpResponse::InternalServerError().finish()
-        }
-    }
+    HttpResponse::Ok().json(inserted_user)
 }
