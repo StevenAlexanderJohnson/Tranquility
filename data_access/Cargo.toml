@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-sqlx = { version = "0.8.1", features = ["runtime-async-std-native-tls", "postgres"] }
+sqlx = { version = "0.8.1", features = ["runtime-async-std-native-tls", "postgres", "chrono"] }
 serde = "1.0.208"
+chrono = { version = "0.4", features = ["serde"] }

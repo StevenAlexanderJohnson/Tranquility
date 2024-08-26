@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 
 use actix_web::{get, post, web, HttpResponse};
 use data_access::{Guild, GuildRepository};
@@ -56,12 +56,15 @@ pub async fn get_guild(
 #[post("/")]
 pub async fn create_guild(
     repository: web::Data<GuildRepository>,
-    guild: web::Json<Guild>,
+    mut guild: web::Json<Guild>,
     claims: web::ReqData<BTreeMap<String, String>>,
 ) -> HttpResponse {
     if claims.get("id").is_none() {
         return HttpResponse::Unauthorized().finish();
     }
+
+    guild.created_date = Some(chrono::Utc::now());
+    guild.updated_date = Some(chrono::Utc::now());
 
     match repository.insert(&guild).await {
         Ok(guild) => HttpResponse::Ok().json(guild),

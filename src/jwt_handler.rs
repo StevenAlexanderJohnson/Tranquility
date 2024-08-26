@@ -19,13 +19,7 @@ pub fn generate_token(auth_user: &AuthUser) -> Result<String, Box<dyn std::error
     let mut claims = BTreeMap::new();
     claims.insert("username".to_string(), auth_user.username.clone());
     claims.insert("exp".to_string(), "3600".to_string());
-    claims.insert("id".to_string(), auth_user.id.unwrap().to_string());
-
-    if let Some(user_claims) = &auth_user.claims {
-        for claim in user_claims.iter() {
-            claims.insert(claim.to_string(), "true".to_string());
-        }
-    }
+    claims.insert("id".to_string(), auth_user.id.as_ref().unwrap().to_string());
 
     let token = claims.sign_with_key(&key).unwrap();
 

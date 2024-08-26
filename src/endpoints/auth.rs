@@ -15,11 +15,9 @@ pub async fn login(
     auth_user: web::Json<AuthUser>,
     repository: web::Data<data_access::AuthRepository>,
 ) -> HttpResponse {
+    let user = auth_user.into_inner();
     match repository
-        .find(
-            auth_user.username.to_string(),
-            auth_user.password.to_string(),
-        )
+        .find(user)
         .await
     {
         Ok(Some(user)) => {
@@ -35,7 +33,7 @@ pub async fn login(
                 .path("/")
                 .expires(OffsetDateTime::now_utc().checked_add(Duration::minutes(2)))
                 .finish();
-            HttpResponse::Ok().cookie(cookie).finish()
+            HttpResponse::Ok().cookie(cookie).json(user)
         }
         Ok(None) => HttpResponse::Unauthorized().finish(),
         Err(e) => {
@@ -50,7 +48,7 @@ pub async fn register(
     auth_user: web::Json<AuthUser>,
     repository: web::Data<data_access::AuthRepository>,
 ) -> HttpResponse {
-    if auth_user.email.is_none() || auth_user.claims.is_some() {
+    if auth_user.email.is_none() {
         return HttpResponse::BadRequest().finish();
     }
 

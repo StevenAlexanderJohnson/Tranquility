@@ -12,6 +12,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(Data::new(AuthRepository::new(connection_pool.clone())))
+            .service(endpoints::websocket_endpoints())
             .service(endpoints::auth_endpoints())
     })
     .bind(("127.0.0.1", 8080))?

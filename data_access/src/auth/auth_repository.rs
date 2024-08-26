@@ -15,25 +15,33 @@ impl AuthRepository {
         &self,
         auth_user: &AuthUser,
     ) -> Result<AuthUser, Box<dyn std::error::Error>> {
-        sqlx::query_as::<_, AuthUser>(
-            "INSERT INTO auth (username, password, email) VALUES ($1, $2, $3) RETURNING id, username, email;"
+        match sqlx::query_as::<_, AuthUser>(
+            "INSERT INTO auth (username, password, email) VALUES ($1, $2, $3) RETURNING id, username, email, refresh_token;"
         )
         .bind(auth_user.username.to_string())
-        .bind(auth_user.password.to_string())
+        .bind(auth_user.password.as_ref().expect("Password was not provided.").to_string())
         .bind(auth_user.email.as_ref().expect("Email has not been provided.").to_string())
-        .fetch_one(&self.pool).await.map_err(|e| e.into())
+        .fetch_one(&self.pool).await {
+            Ok(row) => {
+                println!("{:?}", row);
+                Ok(row)
+            },
+            Err(e) => {
+                println!("Something: {:?}", e);
+                Err("Unable to insert".into())
+            }
+        }
     }
 
     pub async fn find(
         &self,
-        username: String,
-        password: String,
+        auth_user: AuthUser
     ) -> Result<Option<AuthUser>, Box<dyn std::error::Error>> {
         match sqlx::query_as::<_, AuthUser>(
-            "SELECT id, username, password, email WHERE (username = $1 or email = $1) and password = $2;"
+            "SELECT id, username, email, refresh_token from auth WHERE (username = $1 or email = $1) and password = $2;"
         )
-        .bind(username)
-        .bind(password)
+        .bind(auth_user.username)
+        .bind(auth_user.password.as_ref().expect("password was not provided"))
         .fetch_one(&self.pool).await {
             Ok(user) => Ok(Some(user)),
             Err(sqlx::Error::RowNotFound) => Ok(None),
