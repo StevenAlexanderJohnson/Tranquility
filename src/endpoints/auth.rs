@@ -16,10 +16,7 @@ pub async fn login(
     repository: web::Data<data_access::AuthRepository>,
 ) -> HttpResponse {
     let user = auth_user.into_inner();
-    match repository
-        .find(user)
-        .await
-    {
+    match repository.find(user).await {
         Ok(Some(user)) => {
             let jwt = match generate_token(&user) {
                 Ok(jwt) => jwt,
