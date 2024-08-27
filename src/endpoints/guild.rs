@@ -5,27 +5,29 @@ use data_access::{Guild, GuildRepository};
 
 // use crate::data_access::guild_repository::GuildRepository;
 
-// #[get("/")]
-// pub async fn get_guilds(
-//     claims: web::ReqData<BTreeMap<String, String>>,
-//     repository: web::Data<GuildRepository>,
-// ) -> HttpResponse {
-//     let id = match claims.get("id") {
-//         Some(id) => id,
-//         None => return HttpResponse::Unauthorized().finish(),
-//     };
-//     match repository.find_member_guilds(id).await {
-//         Ok(guilds) => HttpResponse::Ok().json(guilds),
-//         Err(e) => {
-//             println!("Failed to get guilds: {}", e);
-//             HttpResponse::InternalServerError().finish()
-//         }
-//     }
-// }
+#[get("/")]
+pub async fn get_guilds(
+    claims: web::ReqData<BTreeMap<String, String>>,
+    repository: web::Data<GuildRepository>,
+) -> HttpResponse {
+    let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
+        Some(id) => id,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    match repository.find_owner_guilds(id).await {
+        Ok(guilds) => HttpResponse::Ok().json(guilds),
+        Err(e) => {
+            println!("Failed to get guilds: {}", e);
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}
 
 #[get("/{guild_id}")]
 pub async fn get_guild(
     repository: web::Data<GuildRepository>,
+    claims: web::ReqData<BTreeMap<String, String>>,
     path: web::Path<i32>,
 ) -> HttpResponse {
     match repository.find_by_id(path.into_inner()).await {
@@ -63,11 +65,13 @@ pub async fn create_guild(
         return HttpResponse::Unauthorized().finish();
     }
 
-    guild.created_date = Some(chrono::Utc::now());
-    guild.updated_date = Some(chrono::Utc::now());
+    guild.owner_id = Some(claims.get("id").unwrap().parse::<i32>().unwrap());
 
     match repository.insert(&guild).await {
         Ok(guild) => HttpResponse::Ok().json(guild),
-        Err(_) => HttpResponse::InternalServerError().finish(),
+        Err(e) => {
+            println!("{:?}", e);
+            HttpResponse::InternalServerError().finish()
+        }
     }
 }

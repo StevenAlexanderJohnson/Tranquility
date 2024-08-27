@@ -12,10 +12,10 @@ pub fn websocket_endpoints() -> actix_web::Scope {
     actix_web::web::scope("/ws").service(websocket::echo)
 }
 
-// pub fn guild_endpoints() -> actix_web::Scope {
-//     actix_web::web::scope("/guild")
-//         .service(guild::get_guild)
-//         .service(guild::get_guilds)
-//         .service(guild::create_guild)
+pub fn guild_endpoints() -> actix_web::Scope {
+    actix_web::web::scope("/guild")
+        .service(guild::get_guild)
+        .service(guild::get_guilds)
+        .service(guild::create_guild)
 //         .service(guild::create_channel)
-// }
+}
