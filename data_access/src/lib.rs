@@ -2,6 +2,7 @@ mod auth;
 mod guilds;
 mod channel;
 mod roles;
+mod members;
 
 pub use auth::auth_repository::AuthRepository;
 pub use auth::model::AuthUser;
@@ -11,6 +12,9 @@ pub use guilds::model::Guild;
 
 pub use channel::channel_repository::ChannelRepository;
 pub use channel::model::Channel;
+
+pub use members::member_repository::MemberRepository;
+pub use members::model::Member;
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 

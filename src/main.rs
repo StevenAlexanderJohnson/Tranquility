@@ -7,7 +7,7 @@ use actix_web::{
     App, HttpServer,
 };
 use auth_middleware::Auth;
-use data_access::{AuthRepository, GuildRepository};
+use data_access::{AuthRepository, GuildRepository, MemberRepository};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -18,6 +18,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Auth)
             .app_data(Data::new(AuthRepository::new(connection_pool.clone())))
             .app_data(Data::new(GuildRepository::new(connection_pool.clone())))
+            .app_data(Data::new(MemberRepository::new(connection_pool.clone())))
             .service(endpoints::websocket_endpoints())
             .service(endpoints::auth_endpoints())
             .service(scope("/api").service(endpoints::guild_endpoints()))

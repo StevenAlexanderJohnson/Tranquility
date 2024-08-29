@@ -1,12 +1,29 @@
 use std::collections::BTreeMap;
 
 use actix_web::{get, post, web, HttpResponse};
-use data_access::{Guild, GuildRepository};
-
-// use crate::data_access::guild_repository::GuildRepository;
+use data_access::{Guild, GuildRepository, MemberRepository};
 
 #[get("/")]
 pub async fn get_guilds(
+    claims: web::ReqData<BTreeMap<String, String>>,
+    repository: web::Data<GuildRepository>,
+) -> HttpResponse {
+    let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
+        Some(id) => id,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    match repository.find_guilds(id).await {
+        Ok(guilds) => HttpResponse::Ok().json(guilds),
+        Err(e) => {
+            println!("{e:?}");
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}
+
+#[get("/owned")]
+pub async fn get_owned_guilds(
     claims: web::ReqData<BTreeMap<String, String>>,
     repository: web::Data<GuildRepository>,
 ) -> HttpResponse {
@@ -30,7 +47,12 @@ pub async fn get_guild(
     claims: web::ReqData<BTreeMap<String, String>>,
     path: web::Path<i32>,
 ) -> HttpResponse {
-    match repository.find_by_id(path.into_inner()).await {
+    let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
+        Some(id) => id,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    match repository.find_by_id(path.into_inner(), id).await {
         Ok(Some(guild)) => HttpResponse::Ok().json(guild),
         Ok(None) => HttpResponse::NotFound().finish(),
         Err(e) => {
@@ -40,38 +62,33 @@ pub async fn get_guild(
     }
 }
 
-// #[post("/{guild_id}/channel")]
-// pub async fn create_channel(
-//     repository: web::Data<GuildRepository>,
-//     path: web::Path<String>,
-//     body: web::Json<Channel>,
-// ) -> HttpResponse {
-//     match repository.add_channel(&path, body.into_inner()).await {
-//         Ok(channel) => HttpResponse::Created().json(channel),
-//         Err(e) => {
-//             println!("{:?}", e);
-//             HttpResponse::InternalServerError().finish()
-//         }
-//     }
-// }
-
 #[post("/")]
 pub async fn create_guild(
     repository: web::Data<GuildRepository>,
+    member_repository: web::Data<MemberRepository>,
     mut guild: web::Json<Guild>,
     claims: web::ReqData<BTreeMap<String, String>>,
 ) -> HttpResponse {
-    if claims.get("id").is_none() {
-        return HttpResponse::Unauthorized().finish();
-    }
+    let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
+        Some(id) => id,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
 
-    guild.owner_id = Some(claims.get("id").unwrap().parse::<i32>().unwrap());
+    guild.owner_id = Some(id);
 
-    match repository.insert(&guild).await {
-        Ok(guild) => HttpResponse::Ok().json(guild),
+    let new_guild = match repository.insert(&guild).await {
+        Ok(guild) => guild,
         Err(e) => {
             println!("{:?}", e);
-            HttpResponse::InternalServerError().finish()
+            return HttpResponse::InternalServerError().finish();
         }
+    };
+
+    match member_repository
+        .add_user_to_guild(id, new_guild.id.unwrap(), id)
+        .await
+    {
+        Ok(_) => HttpResponse::Ok().json(guild),
+        Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }
