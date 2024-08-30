@@ -1,4 +1,4 @@
-use sqlx::{Pool, Postgres, Transaction};
+use sqlx::{Pool, Postgres};
 
 use crate::AuthUser;
 
