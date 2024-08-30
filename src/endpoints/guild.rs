@@ -1,19 +1,19 @@
 use std::collections::BTreeMap;
 
 use actix_web::{get, post, web, HttpResponse};
-use data_access::{Guild, GuildRepository, MemberRepository};
+use data_access::{DatabaseConnection, Guild};
 
 #[get("/")]
 pub async fn get_guilds(
     claims: web::ReqData<BTreeMap<String, String>>,
-    repository: web::Data<GuildRepository>,
+    repository: web::Data<DatabaseConnection>,
 ) -> HttpResponse {
     let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
         Some(id) => id,
         None => return HttpResponse::Unauthorized().finish(),
     };
 
-    match repository.find_guilds(id).await {
+    match repository.find_joined_guild(id).await {
         Ok(guilds) => HttpResponse::Ok().json(guilds),
         Err(e) => {
             println!("{e:?}");
@@ -25,14 +25,14 @@ pub async fn get_guilds(
 #[get("/owned")]
 pub async fn get_owned_guilds(
     claims: web::ReqData<BTreeMap<String, String>>,
-    repository: web::Data<GuildRepository>,
+    repository: web::Data<DatabaseConnection>,
 ) -> HttpResponse {
     let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
         Some(id) => id,
         None => return HttpResponse::Unauthorized().finish(),
     };
 
-    match repository.find_owner_guilds(id).await {
+    match repository.find_owned_guilds(id).await {
         Ok(guilds) => HttpResponse::Ok().json(guilds),
         Err(e) => {
             println!("Failed to get guilds: {}", e);
@@ -43,7 +43,7 @@ pub async fn get_owned_guilds(
 
 #[get("/{guild_id}")]
 pub async fn get_guild(
-    repository: web::Data<GuildRepository>,
+    repository: web::Data<DatabaseConnection>,
     claims: web::ReqData<BTreeMap<String, String>>,
     path: web::Path<i32>,
 ) -> HttpResponse {
@@ -52,7 +52,7 @@ pub async fn get_guild(
         None => return HttpResponse::Unauthorized().finish(),
     };
 
-    match repository.find_by_id(path.into_inner(), id).await {
+    match repository.find_guild_by_id(path.into_inner(), id).await {
         Ok(Some(guild)) => HttpResponse::Ok().json(guild),
         Ok(None) => HttpResponse::NotFound().finish(),
         Err(e) => {
@@ -64,8 +64,7 @@ pub async fn get_guild(
 
 #[post("/")]
 pub async fn create_guild(
-    repository: web::Data<GuildRepository>,
-    member_repository: web::Data<MemberRepository>,
+    repository: web::Data<DatabaseConnection>,
     mut guild: web::Json<Guild>,
     claims: web::ReqData<BTreeMap<String, String>>,
 ) -> HttpResponse {
@@ -76,19 +75,11 @@ pub async fn create_guild(
 
     guild.owner_id = Some(id);
 
-    let new_guild = match repository.insert(&guild).await {
-        Ok(guild) => guild,
+    match repository.create_guild(&guild).await {
+        Ok(guild) => HttpResponse::Created().json(guild),
         Err(e) => {
             println!("{:?}", e);
-            return HttpResponse::InternalServerError().finish();
+            HttpResponse::InternalServerError().finish()
         }
-    };
-
-    match member_repository
-        .add_user_to_guild(id, new_guild.id.unwrap(), id)
-        .await
-    {
-        Ok(_) => HttpResponse::Ok().json(guild),
-        Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }

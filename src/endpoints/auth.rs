@@ -5,18 +5,16 @@ use actix_web::{
     },
     post, web, HttpResponse,
 };
-// use server::{auth_user::AuthUser, member::Member};
-use data_access::AuthUser;
+use data_access::{AuthUser, DatabaseConnection};
 
 use crate::jwt_handler::generate_token;
 
 #[post("/login")]
 pub async fn login(
     auth_user: web::Json<AuthUser>,
-    repository: web::Data<data_access::AuthRepository>,
+    repository: web::Data<DatabaseConnection>,
 ) -> HttpResponse {
-    let user = auth_user.into_inner();
-    match repository.find(user).await {
+    match repository.login(&auth_user.into_inner()).await {
         Ok(Some(user)) => {
             let jwt = match generate_token(&user) {
                 Ok(jwt) => jwt,
@@ -43,19 +41,17 @@ pub async fn login(
 #[post("/register")]
 pub async fn register(
     auth_user: web::Json<AuthUser>,
-    repository: web::Data<data_access::AuthRepository>,
+    repository: web::Data<DatabaseConnection>,
 ) -> HttpResponse {
     if auth_user.email.is_none() {
         return HttpResponse::BadRequest().finish();
     }
 
-    let inserted_user = match repository.insert(&auth_user.into_inner()).await {
-        Ok(user) => user,
+    match repository.register_user(&auth_user.into_inner()).await {
+        Ok(user) => HttpResponse::Ok().json(user),
         Err(e) => {
             println!("{:?}", e);
-            return HttpResponse::InternalServerError().finish();
+            HttpResponse::InternalServerError().finish()
         }
-    };
-
-    HttpResponse::Ok().json(inserted_user)
+    }
 }

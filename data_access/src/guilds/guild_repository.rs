@@ -1,20 +1,16 @@
-use sqlx::{Pool, Postgres};
+use sqlx::{Pool, Postgres, Transaction};
 
 use crate::Guild;
 
-pub struct GuildRepository {
-    pool: Pool<Postgres>,
-}
+#[derive(Clone)]
+pub struct GuildRepository {}
 
 impl GuildRepository {
-    pub fn new(pool: Pool<Postgres>) -> Self {
-        Self { pool }
-    }
-
     pub async fn find_by_id(
         &self,
         id: i32,
         member_id: i32,
+        pool: &Pool<Postgres>,
     ) -> Result<Option<Guild>, Box<dyn std::error::Error>> {
         match sqlx::query_as::<_, Guild>(
             "
@@ -26,7 +22,7 @@ impl GuildRepository {
         )
         .bind(id)
         .bind(member_id)
-        .fetch_one(&self.pool)
+        .fetch_one(pool)
         .await
         .map_err(|e| e.into())
         {
@@ -39,26 +35,29 @@ impl GuildRepository {
     pub async fn find_guilds(
         &self,
         id: i32,
+        pool: &Pool<Postgres>,
     ) -> Result<Option<Vec<Guild>>, Box<dyn std::error::Error>> {
         match sqlx::query_as(
             "
             SELECT g.id, g.name, g.description, g.owner_id, g.created_date, g.updated_date
             FROM guild g
             JOIN member m on m.guild_id = g.id
-            WHERE m.user_id = $1;"
+            WHERE m.user_id = $1;",
         )
         .bind(id)
-        .fetch_all(&self.pool)
-        .await {
+        .fetch_all(pool)
+        .await
+        {
             Ok(guild) => Ok(Some(guild)),
             Err(sqlx::Error::RowNotFound) => Ok(None),
-            Err(e) => Err(e.into())
+            Err(e) => Err(e.into()),
         }
     }
 
     pub async fn find_owner_guilds(
         &self,
         id: i32,
+        pool: &Pool<Postgres>,
     ) -> Result<Option<Vec<Guild>>, Box<dyn std::error::Error>> {
         match sqlx::query_as(
             "
@@ -68,7 +67,7 @@ impl GuildRepository {
         ",
         )
         .bind(id)
-        .fetch_all(&self.pool)
+        .fetch_all(pool)
         .await
         {
             Ok(guild) => Ok(Some(guild)),
@@ -77,7 +76,11 @@ impl GuildRepository {
         }
     }
 
-    pub async fn insert(&self, guild: &Guild) -> Result<Guild, Box<dyn std::error::Error>> {
+    pub async fn insert(
+        &self,
+        guild: &Guild,
+        tx: &mut Transaction<'_, Postgres>,
+    ) -> Result<Guild, Box<dyn std::error::Error>> {
         sqlx::query_as::<_, Guild>(
             "
             INSERT INTO guild (name, description, owner_id)
@@ -88,7 +91,7 @@ impl GuildRepository {
         .bind(guild.name.to_string())
         .bind(guild.description.to_string())
         .bind(guild.owner_id)
-        .fetch_one(&self.pool)
+        .fetch_one(&mut **tx)
         .await
         .map_err(|e| e.into())
     }
