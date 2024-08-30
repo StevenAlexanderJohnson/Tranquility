@@ -221,6 +221,8 @@ impl DatabaseConnection {
             return Err(e);
         }
 
+        tx.commit().await?;
+
         Ok(guild)
     }
 }
