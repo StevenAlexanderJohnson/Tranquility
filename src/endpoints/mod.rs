@@ -6,6 +6,7 @@ pub fn auth_endpoints() -> actix_web::Scope {
     actix_web::web::scope("/auth")
         .service(auth::login)
         .service(auth::register)
+        .service(auth::refresh_token)
 }
 
 pub fn websocket_endpoints() -> actix_web::Scope {

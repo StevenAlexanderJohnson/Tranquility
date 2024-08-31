@@ -1,4 +1,4 @@
-use sqlx::{Pool, Postgres};
+use sqlx::{Pool, Postgres, Transaction};
 
 use crate::AuthUser;
 
@@ -24,14 +24,32 @@ impl<'a> AuthRepository {
     pub async fn find(
         &self,
         auth_user: &AuthUser,
-        pool: &Pool<Postgres>,
+        tx: &mut Transaction<'_, Postgres>
     ) -> Result<Option<AuthUser>, Box<dyn std::error::Error>> {
         match sqlx::query_as::<_, AuthUser>(
-            "SELECT id, username, email, refresh_token from auth WHERE (username = $1 or email = $1) and password = $2;"
+            "UPDATE auth SET refresh_token = md5(random()::text) WHERE username = $1 AND password = $2 RETURNING id, username, email, refresh_token;"
         )
         .bind(&auth_user.username)
         .bind(&auth_user.password.as_ref().expect("password was not provided"))
-        .fetch_one(pool).await {
+        .fetch_one(&mut **tx).await {
+            Ok(user) => Ok(Some(user)),
+            Err(sqlx::Error::RowNotFound) => Ok(None),
+            Err(e) => Err(e.into())
+        }
+    }
+
+    pub async fn update_refresh_token(
+        &self,
+        user_id: i32,
+        token: String,
+        tx: &mut Transaction<'_, Postgres>,
+    ) -> Result<Option<AuthUser>, Box<dyn std::error::Error>> {
+        match sqlx::query_as::<_, AuthUser>(
+            "UPDATE auth SET refresh_token = md5(random()::text) WHERE id = $1 AND refresh_token = $2 RETURNING id, username, email, refresh_token, updated_date;"
+        )
+        .bind(&user_id)
+        .bind(&token)
+        .fetch_one(&mut **tx).await {
             Ok(user) => Ok(Some(user)),
             Err(sqlx::Error::RowNotFound) => Ok(None),
             Err(e) => Err(e.into())

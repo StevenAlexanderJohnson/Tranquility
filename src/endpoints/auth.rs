@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use actix_web::{
     cookie::{
         time::{Duration, OffsetDateTime},
@@ -26,7 +28,7 @@ pub async fn login(
             let cookie = Cookie::build("auth_token", jwt)
                 .domain("localhost")
                 .path("/")
-                .expires(OffsetDateTime::now_utc().checked_add(Duration::minutes(2)))
+                .expires(OffsetDateTime::now_utc().checked_add(Duration::minutes(10)))
                 .finish();
             HttpResponse::Ok().cookie(cookie).json(user)
         }
@@ -54,4 +56,39 @@ pub async fn register(
             HttpResponse::InternalServerError().finish()
         }
     }
+}
+
+#[post("/refresh/{token}")]
+pub async fn refresh_token(
+    repository: web::Data<DatabaseConnection>,
+    data: web::ReqData<BTreeMap<String, String>>,
+    token: web::Path<String>,
+) -> HttpResponse {
+    let id = match data.get("id").and_then(|id| id.parse::<i32>().ok()) {
+        Some(x) => x,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    let auth_user = match repository.refresh_auth_token(id, token.into_inner()).await {
+        Ok(Some(auth_user)) => auth_user,
+        Ok(None) => return HttpResponse::Unauthorized().finish(),
+        Err(e) => {
+            println!("{:?}", e);
+            return HttpResponse::Unauthorized().finish();
+        }
+    };
+    let jwt = match generate_token(&auth_user) {
+        Ok(jwt) => jwt,
+        Err(e) => {
+            println!("Failed to generate token: {}", e);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+    let cookie = Cookie::build("auth_token", jwt)
+        .domain("localhost")
+        .path("/")
+        .expires(OffsetDateTime::now_utc().checked_add(Duration::minutes(10)))
+        .finish();
+
+    HttpResponse::Ok().cookie(cookie).json(auth_user)
 }

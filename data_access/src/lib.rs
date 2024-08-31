@@ -19,18 +19,18 @@ pub use members::model::Member;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
 /// Creates a connection pool to the database
-/// 
+///
 /// # Notes
-/// 
+///
 /// This function will panic if the `POSTGRES_URI` environment variable is not set.
 /// It uses this value in order to connect to the database so that it doesn't have to be passed in.
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `max_connections` - The maximum number of connections to the database
-/// 
+///
 /// # Returns
-/// 
+///
 /// A connection pool to the database - `Pool<Postgres>`
 pub async fn create_connection_pool(max_connections: u32) -> Pool<Postgres> {
     let uri = std::env::var("POSTGRES_URI").expect("POSTGRES_URI is not set");
@@ -44,17 +44,17 @@ pub async fn create_connection_pool(max_connections: u32) -> Pool<Postgres> {
 }
 
 /// A struct that holds the database connection and repositories.
-/// 
+///
 /// # Fields
-/// 
+///
 /// * `pool` - The connection pool to the database.
 /// * `auth` - The repository for the `AuthUser` model.
 /// * `channel` - The repository for the `Channel` model.
 /// * `guild` - The repository for the `Guild` model.
 /// * `member` - The repository for the `Member` model.
-/// 
+///
 /// # Notes
-/// 
+///
 /// This struct is used to interact with the database and abstracts the database connection and repositories.
 #[derive(Clone)]
 pub struct DatabaseConnection {
@@ -67,13 +67,13 @@ pub struct DatabaseConnection {
 
 impl DatabaseConnection {
     /// Creates a new `DatabaseConnection` struct
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `pool` - The connection pool to the database.
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A new `DatabaseConnection` struct
     pub fn new(pool: Pool<Postgres>) -> Self {
         Self {
@@ -86,13 +86,13 @@ impl DatabaseConnection {
     }
 
     /// Registers a user in the auth table in the database.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `user` - The user to register.
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A result containing the registered user or an error.
     /// The returned user will have the 'id' field set as well as the `created_date` and `updated_date` fields.
     pub async fn register_user(
@@ -106,30 +106,62 @@ impl DatabaseConnection {
     }
 
     /// Logs a user in by checking the auth table in the database.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `user` - The user to log in.
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A result containing the logged in user or an error.
     /// The returned user will only have the `id`, `username`, `email`, and `refresh_token` fields set.
     pub async fn login(
         &self,
         user: &AuthUser,
     ) -> Result<Option<AuthUser>, Box<dyn std::error::Error>> {
-        self.auth.find(user, &self.pool).await.map_err(|e| e.into())
+        let mut tx = self.pool.begin().await?;
+        match self.auth.find(user, &mut tx).await {
+            Ok(x) => {
+                tx.commit().await?;
+                Ok(x)
+            }
+            Err(e) => {
+                tx.rollback().await?;
+                Err(e)
+            }
+        }
+    }
+
+    pub async fn refresh_auth_token(
+        &self,
+        user_id: i32,
+        refresh_token: String,
+    ) -> Result<Option<AuthUser>, Box<dyn std::error::Error>> {
+        let mut tx = self.pool.begin().await?;
+        match self
+            .auth
+            .update_refresh_token(user_id, refresh_token, &mut tx)
+            .await
+        {
+            Ok(x) => {
+                tx.commit().await?;
+                Ok(x)
+            }
+            Err(e) => {
+                tx.rollback().await?;
+                Err(e)
+            }
+        }
     }
 
     /// Finds all the guilds that the user has joined.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `user_id` - The id of the user to find the guilds for.
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A result containing the guilds that the user has joined or an error.
     /// The list of guilds can also be None if the user has not joined any guilds.
     pub async fn find_joined_guild(
@@ -140,13 +172,13 @@ impl DatabaseConnection {
     }
 
     /// Finds all the guilds that the user owns.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `user_id` - The id of the user to find the guilds for.
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A result containing the guilds that the user owns or an error.
     /// The list of guilds can also be None if the user does not own any guilds.
     pub async fn find_owned_guilds(
@@ -157,19 +189,19 @@ impl DatabaseConnection {
     }
 
     /// Finds a guild by its id.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `guild_id` - The id of the guild to find.
     /// * `member_id` - The id of the member to find the guild for.
-    /// 
+    ///
     /// # Notes
-    /// 
+    ///
     /// The `member_id` is required because guilds will be hidden by default.
     /// Only invited members can view or search for the guild.
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A result containing the guild or an error.
     /// The guild can also be None if the guild does not exist.
     pub async fn find_guild_by_id(
@@ -181,18 +213,18 @@ impl DatabaseConnection {
     }
 
     /// Creates a new guild in the database.
-    /// 
+    ///
     /// # Notes
-    /// 
+    ///
     /// The owner of the guild should be set before trying to create it.
     /// This value will be used to add the owner to the guild in the `member` table.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `guild` - The guild to create.
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A result containing the created guild or an error.
     /// The created guild will have the `id` field set as well as the `created_date` and `updated_date` fields.
     pub async fn create_guild(&self, guild: &Guild) -> Result<Guild, Box<dyn std::error::Error>> {
