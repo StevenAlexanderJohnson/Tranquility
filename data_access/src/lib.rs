@@ -132,6 +132,16 @@ impl DatabaseConnection {
         }
     }
 
+    /// Generates a new refresh token.
+    ///
+    /// # Arguments
+    ///
+    /// * `user_id` - ID of user requesting a refresh.
+    ///
+    /// # Returns
+    ///
+    /// A result containing an option of the updated AuthUser struct or an error.
+    /// In Ok(user), if user is None that means the provided user_id and provided refresh_token is incorrect.
     pub async fn refresh_auth_token(
         &self,
         user_id: i32,
@@ -256,5 +266,33 @@ impl DatabaseConnection {
         tx.commit().await?;
 
         Ok(guild)
+    }
+
+    pub async fn find_guild_channels(
+        &self,
+        guild_id: i32,
+        user_id: i32,
+    ) -> Result<Option<Vec<Channel>>, Box<dyn std::error::Error>> {
+        self.channel
+            .find_guild_channels(guild_id, user_id, &self.pool)
+            .await
+    }
+
+    pub async fn create_guild_channel(
+        &self,
+        channel: &Channel,
+        user_id: i32
+    ) -> Result<Option<Channel>, Box<dyn std::error::Error>> {
+        let mut tx = self.pool.begin().await?;
+        match self.channel.insert(channel, user_id, &mut tx).await {
+            Ok(x) => {
+                tx.commit().await?;
+                Ok(x)
+            }
+            Err(e) => {
+                tx.rollback().await?;
+                Err(e)
+            }
+        }
     }
 }

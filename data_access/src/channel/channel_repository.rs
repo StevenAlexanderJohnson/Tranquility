@@ -1,4 +1,4 @@
-use sqlx::{Postgres, Transaction};
+use sqlx::{Pool, Postgres, Transaction};
 
 use crate::Channel;
 
@@ -6,14 +6,50 @@ use crate::Channel;
 pub struct ChannelRepository {}
 
 impl ChannelRepository {
-    pub async fn insert(&self, channel: Channel, tx: &mut Transaction<'_, Postgres>) -> Result<Channel, Box<dyn std::error::Error>> {
-        sqlx::query_as::<_, Channel>(
-            "INSERT INTO channel (name, message_count) VALUES ($1, $2) RETURNS id, name, message_count;"
+    pub async fn insert(
+        &self,
+        channel: &Channel,
+        user_id: i32,
+        tx: &mut Transaction<'_, Postgres>,
+    ) -> Result<Option<Channel>, Box<dyn std::error::Error>> {
+        match sqlx::query_as::<_, Channel>(
+            r#"
+            INSERT INTO channel (name, guild_id) SELECT $1, $2 WHERE EXISTS (SELECT 1 FROM member WHERE guild_id = $2 AND user_id = $3)
+            RETURNING id, name, message_count, guild_id, created_date, updated_date;
+            "#,
         )
-        .bind(channel.name)
-        .bind(channel.message_count)
+        .bind(&channel.name)
+        .bind(&channel.guild_id)
+        .bind(&user_id)
         .fetch_one(&mut **tx)
         .await
-        .map_err(|e| e.into())
+        {
+            Ok(channel) => Ok(Some(channel)),
+            Err(sqlx::Error::RowNotFound) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    pub async fn find_guild_channels(
+        &self,
+        guild_id: i32,
+        user_id: i32,
+        pool: &Pool<Postgres>,
+    ) -> Result<Option<Vec<Channel>>, Box<dyn std::error::Error>> {
+        match sqlx::query_as::<_, Channel>(
+            "SELECT id, name, message_count, guild_id, created_date, updated_date
+                FROM channel c
+                JOIN member m on c.guild_id = m.guild_id
+                WHERE m.user_id = $1 AND c.guild_id = $2",
+        )
+        .bind(user_id)
+        .bind(guild_id)
+        .fetch_all(pool)
+        .await
+        {
+            Ok(result) => Ok(Some(result)),
+            Err(sqlx::Error::RowNotFound) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
     }
 }

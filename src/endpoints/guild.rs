@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use actix_web::{get, post, web, HttpResponse};
-use data_access::{DatabaseConnection, Guild};
+use data_access::{Channel, DatabaseConnection, Guild};
 
 #[get("/")]
 pub async fn get_guilds(
@@ -77,6 +77,51 @@ pub async fn create_guild(
 
     match repository.create_guild(&guild).await {
         Ok(guild) => HttpResponse::Created().json(guild),
+        Err(e) => {
+            println!("{:?}", e);
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}
+
+#[get("/{guild_id}/channel")]
+pub async fn get_channel_guilds(
+    repository: web::Data<DatabaseConnection>,
+    path: web::Path<i32>,
+    claims: web::ReqData<BTreeMap<String, String>>,
+) -> HttpResponse {
+    let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
+        Some(id) => id,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    match repository.find_guild_channels(path.into_inner(), id).await {
+        Ok(Some(guilds)) => HttpResponse::Ok().json(guilds),
+        Ok(None) => HttpResponse::NotFound().finish(),
+        Err(e) => {
+            println!("Failed to get guild channels: {}", e);
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}
+
+#[post("/{guild_id}/channel")]
+pub async fn create_guild_channel(
+    repository: web::Data<DatabaseConnection>,
+    path: web::Path<i32>,
+    claims: web::ReqData<BTreeMap<String, String>>,
+    mut channel: web::Json<Channel>
+) -> HttpResponse {
+    let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
+        Some(id) => id,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+    
+    channel.guild_id = Some(path.into_inner());
+
+    match repository.create_guild_channel(&channel, id).await {
+        Ok(Some(channel)) => HttpResponse::Created().json(channel),
+        Ok(None) => HttpResponse::NotFound().finish(),
         Err(e) => {
             println!("{:?}", e);
             HttpResponse::InternalServerError().finish()
