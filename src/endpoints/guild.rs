@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use actix_web::{get, post, web, HttpResponse};
+use actix_web::{get, post, web, HttpResponse, ResponseError};
 use data_access::{Channel, DatabaseConnection, Guild};
 
 #[get("/")]
@@ -14,10 +14,11 @@ pub async fn get_guilds(
     };
 
     match repository.find_joined_guild(id).await {
-        Ok(guilds) => HttpResponse::Ok().json(guilds),
+        Ok(Some(guilds)) => HttpResponse::Ok().json(guilds),
+        Ok(None) => HttpResponse::Ok().json(Vec::<Guild>::new()),
         Err(e) => {
             println!("{e:?}");
-            HttpResponse::InternalServerError().finish()
+            e.error_response()
         }
     }
 }
@@ -110,13 +111,13 @@ pub async fn create_guild_channel(
     repository: web::Data<DatabaseConnection>,
     path: web::Path<i32>,
     claims: web::ReqData<BTreeMap<String, String>>,
-    mut channel: web::Json<Channel>
+    mut channel: web::Json<Channel>,
 ) -> HttpResponse {
     let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
         Some(id) => id,
         None => return HttpResponse::Unauthorized().finish(),
     };
-    
+
     channel.guild_id = Some(path.into_inner());
 
     match repository.create_guild_channel(&channel, id).await {

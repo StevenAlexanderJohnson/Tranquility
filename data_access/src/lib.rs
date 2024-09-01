@@ -8,7 +8,7 @@ use auth::auth_repository::AuthRepository;
 pub use auth::model::AuthUser;
 
 use guilds::guild_repository::GuildRepository;
-pub use guilds::model::Guild;
+pub use guilds::model::{Guild, GuildResponse};
 
 use channel::channel_repository::ChannelRepository;
 pub use channel::model::Channel;
@@ -177,8 +177,29 @@ impl DatabaseConnection {
     pub async fn find_joined_guild(
         &self,
         user_id: i32,
-    ) -> Result<Option<Vec<Guild>>, Box<dyn std::error::Error>> {
-        self.guild.find_guilds(user_id, &self.pool).await
+    ) -> Result<Option<Vec<GuildResponse>>, Box<dyn std::error::Error>> {
+        match self.guild.find_guilds(user_id, &self.pool).await {
+            Ok(Some(guilds)) => {
+                let mut guild_response = guilds
+                    .into_iter()
+                    .map(GuildResponse::try_from)
+                    .collect::<Result<Vec<_>, _>>()?;
+
+                for guild in &mut guild_response {
+                    guild.channels = match self.find_guild_channels(guild.id, user_id).await {
+                        Ok(channels) => channels.unwrap_or_default(),
+                        Err(e) => {
+                            println!("{:?}", e);
+                            return Err("".into());
+                        }
+                    };
+                }
+
+                Ok(Some(guild_response))
+            }
+            Ok(None) => Ok(None),
+            Err(e) => Err(e),
+        }
     }
 
     /// Finds all the guilds that the user owns.
@@ -281,7 +302,7 @@ impl DatabaseConnection {
     pub async fn create_guild_channel(
         &self,
         channel: &Channel,
-        user_id: i32
+        user_id: i32,
     ) -> Result<Option<Channel>, Box<dyn std::error::Error>> {
         let mut tx = self.pool.begin().await?;
         match self.channel.insert(channel, user_id, &mut tx).await {

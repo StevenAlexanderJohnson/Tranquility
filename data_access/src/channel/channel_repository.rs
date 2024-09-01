@@ -37,7 +37,7 @@ impl ChannelRepository {
         pool: &Pool<Postgres>,
     ) -> Result<Option<Vec<Channel>>, Box<dyn std::error::Error>> {
         match sqlx::query_as::<_, Channel>(
-            "SELECT id, name, message_count, guild_id, created_date, updated_date
+            "SELECT c.id, c.name, c.message_count, c.guild_id, c.created_date, c.updated_date
                 FROM channel c
                 JOIN member m on c.guild_id = m.guild_id
                 WHERE m.user_id = $1 AND c.guild_id = $2",
