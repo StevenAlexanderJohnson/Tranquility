@@ -52,4 +52,29 @@ impl ChannelRepository {
             Err(e) => Err(e.into()),
         }
     }
+
+    pub async fn find_channel(
+        &self,
+        channel_id: i32,
+        guild_id: i32,
+        user_id: i32,
+        pool: &Pool<Postgres>,
+    ) -> Result<Option<Channel>, Box<dyn std::error::Error>> {
+        match sqlx::query_as::<_, Channel>(
+            "SELECT c.id, c.name, c.message_count, c.guild_id, c.created_date, c.updated_date
+            FROM channel c
+            JOIN member m on c.guild_id = m.guild_id
+            WHERE c.id = $1 AND m.user_id = $2 AND c.guild_id = $3"
+        )
+        .bind(channel_id)
+        .bind(guild_id)
+        .bind(user_id)
+        .fetch_one(pool)
+        .await
+        {
+            Ok(result) => Ok(Some(result)),
+            Err(sqlx::Error::RowNotFound) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
 }

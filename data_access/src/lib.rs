@@ -299,6 +299,17 @@ impl DatabaseConnection {
             .await
     }
 
+    pub async fn find_channel(
+        &self,
+        channel_id: i32,
+        guild_id: i32,
+        user_id: i32,
+    ) -> Result<Option<Channel>, Box<dyn std::error::Error>> {
+        self.channel
+            .find_channel(channel_id, guild_id, user_id, &self.pool)
+            .await
+    }
+
     pub async fn create_guild_channel(
         &self,
         channel: &Channel,

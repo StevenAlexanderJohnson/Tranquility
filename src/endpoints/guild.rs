@@ -86,7 +86,7 @@ pub async fn create_guild(
 }
 
 #[get("/{guild_id}/channel")]
-pub async fn get_channel_guilds(
+pub async fn get_guild_channels(
     repository: web::Data<DatabaseConnection>,
     path: web::Path<i32>,
     claims: web::ReqData<BTreeMap<String, String>>,
@@ -122,6 +122,27 @@ pub async fn create_guild_channel(
 
     match repository.create_guild_channel(&channel, id).await {
         Ok(Some(channel)) => HttpResponse::Created().json(channel),
+        Ok(None) => HttpResponse::NotFound().finish(),
+        Err(e) => {
+            println!("{:?}", e);
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}
+
+#[get("/{guild_id}/channel/{channel_id}")]
+pub async fn get_guild_channel(
+    repository: web::Data<DatabaseConnection>,
+    path: web::Path<(i32, i32)>,
+    claims: web::ReqData<BTreeMap<String, String>>,
+) -> HttpResponse {
+    let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
+        Some(id) => id,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    match repository.find_channel(path.1, path.0, id).await {
+        Ok(Some(channel)) => HttpResponse::Ok().json(channel),
         Ok(None) => HttpResponse::NotFound().finish(),
         Err(e) => {
             println!("{:?}", e);
