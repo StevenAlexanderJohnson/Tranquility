@@ -582,7 +582,6 @@ version = "0.1.0"
 dependencies = [
  "actix-web",
  "actix-ws",
- "chrono",
  "data_access",
  "futures-util",
  "hmac",
