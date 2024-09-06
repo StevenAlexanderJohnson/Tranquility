@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[repr(u32)]
 pub enum Intent {
     GuildCreate = 100,
@@ -30,7 +30,7 @@ pub enum Intent {
     MessageReactionRemoveEmoji = 307,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Role {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<i32>,
