@@ -17,7 +17,7 @@ impl RoleRepository {
             r#"
             INSERT INTO role (guild_id, name) 
             SELECT $1, $2 WHERE EXISTS (SELECT 1 FROM guild WHERE owner_id = $3)
-            RETURNING id, name, guild_id, created_id, updated_id;
+            RETURNING id, name, guild_id, created_date, updated_date;
             "#
         )
         .bind(guild_id)
