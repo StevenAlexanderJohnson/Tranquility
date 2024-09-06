@@ -16,6 +16,9 @@ pub use channel::model::Channel;
 use members::member_repository::MemberRepository;
 pub use members::model::Member;
 
+use roles::{model::Intent, model::RoleResult, role_repository::RoleRepository};
+use roles::model::Role;
+
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
 /// Creates a connection pool to the database
@@ -63,6 +66,7 @@ pub struct DatabaseConnection {
     channel: Box<ChannelRepository>,
     guild: Box<GuildRepository>,
     member: Box<MemberRepository>,
+    role: Box<RoleRepository>
 }
 
 impl DatabaseConnection {
@@ -82,6 +86,7 @@ impl DatabaseConnection {
             channel: Box::new(ChannelRepository {}),
             guild: Box::new(GuildRepository {}),
             member: Box::new(MemberRepository {}),
+            role: Box::new(RoleRepository {})
         }
     }
 
@@ -326,5 +331,41 @@ impl DatabaseConnection {
                 Err(e)
             }
         }
+    }
+
+    pub async fn create_guild_role(
+        &self,
+        role: &RoleResult
+    ) -> Result<Option<RoleResult>, Box<dyn std::error::Error>> {
+        let mut tx = self.pool.begin().await?;
+        let new_role: Role = match self.role.create_role(role.guild_id, &role.name, &mut tx).await {
+            Ok(x) => {
+                x
+            }
+            Err(e) => {
+                tx.rollback().await?;
+                return Err(e);
+            }
+        };
+
+        let mut new_intents = Vec::<Intent>::new();
+        for intent in role.intents.iter() {
+            match self.role.add_row_intent(new_role.id.unwrap(), intent.value, &mut tx).await {
+                Ok(x) => new_intents.push(x),
+                Err(e) => {
+                    tx.rollback().await?;
+                    return Err(e);
+                }
+            }
+        }
+
+        Ok(Some(RoleResult{
+            id: new_role.id,
+            name: new_role.name,
+            guild_id: new_role.guild_id,
+            intents: new_intents,
+            created_date: new_role.created_date.unwrap(),
+            updated_date: new_role.updated_date.unwrap(),
+        }))
     }
 }
