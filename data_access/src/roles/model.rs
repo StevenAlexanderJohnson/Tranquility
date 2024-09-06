@@ -58,7 +58,7 @@ pub struct Role {
     pub updated_date: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RoleResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<i32>,
