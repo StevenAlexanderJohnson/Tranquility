@@ -4,7 +4,7 @@ use sqlx::{
     FromRow,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 #[repr(i32)]
 pub enum IntentValue {
     GuildCreate = 100,
@@ -59,12 +59,21 @@ pub struct Role {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct RoleRequest {
+    pub name: String,
+    pub guild_id: i32,
+    pub intents: Vec<IntentValue>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RoleResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<i32>,
     pub name: String,
     pub guild_id: i32,
     pub intents: Vec<Intent>,
-    pub created_date: DateTime<Utc>,
-    pub updated_date: DateTime<Utc>
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_date: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_date: Option<DateTime<Utc>>
 }

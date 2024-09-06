@@ -17,7 +17,7 @@ use members::member_repository::MemberRepository;
 pub use members::model::Member;
 
 use roles::{model:: Intent, model::Role, role_repository::RoleRepository};
-pub use roles::model::RoleResult;
+pub use roles::model::{RoleResult, RoleRequest};
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
@@ -335,7 +335,7 @@ impl DatabaseConnection {
 
     pub async fn create_guild_role(
         &self,
-        role: &RoleResult,
+        role: &RoleRequest,
         user_id: i32
     ) -> Result<Option<RoleResult>, Box<dyn std::error::Error>> {
         let mut tx = self.pool.begin().await?;
@@ -345,16 +345,18 @@ impl DatabaseConnection {
             }
             Err(e) => {
                 tx.rollback().await?;
+                println!("{:?}", e);
                 return Err(e);
             }
         };
 
         let mut new_intents = Vec::<Intent>::new();
-        for intent in role.intents.iter() {
-            match self.role.add_row_intent(new_role.id.unwrap(), intent.value, &user_id, &mut tx).await {
+        for &intent in role.intents.iter() {
+            match self.role.add_row_intent(new_role.id.unwrap(), intent as i32, &user_id, &mut tx).await {
                 Ok(x) => new_intents.push(x),
                 Err(e) => {
                     tx.rollback().await?;
+                    println!("{:?}", e);
                     return Err(e);
                 }
             }
@@ -365,8 +367,8 @@ impl DatabaseConnection {
             name: new_role.name,
             guild_id: new_role.guild_id,
             intents: new_intents,
-            created_date: new_role.created_date.unwrap(),
-            updated_date: new_role.updated_date.unwrap(),
+            created_date: new_role.created_date,
+            updated_date: new_role.updated_date,
         }))
     }
 }
