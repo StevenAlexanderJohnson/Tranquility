@@ -1,8 +1,12 @@
 use serde::{Deserialize, Serialize};
+use sqlx::{
+    types::chrono::{DateTime, Utc},
+    FromRow,
+};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
-#[repr(u32)]
-pub enum Intent {
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[repr(i32)]
+pub enum IntentValue {
     GuildCreate = 100,
     GuildUpdate = 101,
     GuildDelete = 102,
@@ -30,10 +34,46 @@ pub enum Intent {
     MessageReactionRemoveEmoji = 307,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
+pub struct Intent {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<i32>,
+    pub role_id: i32,
+    pub value: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_date: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_date: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct Role {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<i32>,
     pub name: String,
+    pub guild_id: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_date: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_date: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RoleRequest {
+    pub name: String,
+    pub guild_id: i32,
+    pub intents: Vec<IntentValue>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RoleResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<i32>,
+    pub name: String,
+    pub guild_id: i32,
     pub intents: Vec<Intent>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_date: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_date: Option<DateTime<Utc>>
 }
