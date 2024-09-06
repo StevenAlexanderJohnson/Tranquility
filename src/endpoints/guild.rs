@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use actix_web::{get, post, web, HttpResponse, ResponseError};
-use data_access::{Channel, DatabaseConnection, Guild};
+use data_access::{Channel, DatabaseConnection, Guild, RoleResult};
 
 #[get("/")]
 pub async fn get_guilds(
@@ -148,5 +148,28 @@ pub async fn get_guild_channel(
             println!("{:?}", e);
             HttpResponse::InternalServerError().finish()
         }
+    }
+}
+
+#[post("/{guild_id}/role")]
+pub async fn create_guild_role(
+    repository: web::Data<DatabaseConnection>,
+    path: web::Path<i32>,
+    claims: web::ReqData<BTreeMap<String, String>>,
+    role: web::Json<RoleResult>,
+) -> HttpResponse {
+    let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
+        Some(id) => id,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    if role.guild_id != path.into_inner() {
+        return HttpResponse::BadRequest().finish();
+    }
+
+    match repository.create_guild_role(&role, id).await {
+        Ok(Some(role)) => HttpResponse::Created().json(role),
+        Ok(None) => HttpResponse::BadRequest().finish(),
+        Err(e) => HttpResponse::InternalServerError().finish(),
     }
 }
