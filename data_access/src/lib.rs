@@ -16,8 +16,8 @@ pub use channel::model::Channel;
 use members::member_repository::MemberRepository;
 pub use members::model::Member;
 
-use roles::{model::Intent, model::RoleResult, role_repository::RoleRepository};
-use roles::model::Role;
+use roles::{model:: Intent, model::Role, role_repository::RoleRepository};
+pub use roles::model::RoleResult;
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
@@ -335,10 +335,11 @@ impl DatabaseConnection {
 
     pub async fn create_guild_role(
         &self,
-        role: &RoleResult
+        role: &RoleResult,
+        user_id: i32
     ) -> Result<Option<RoleResult>, Box<dyn std::error::Error>> {
         let mut tx = self.pool.begin().await?;
-        let new_role: Role = match self.role.create_role(role.guild_id, &role.name, &mut tx).await {
+        let new_role: Role = match self.role.create_role(role.guild_id, &role.name, &user_id, &mut tx).await {
             Ok(x) => {
                 x
             }
@@ -350,7 +351,7 @@ impl DatabaseConnection {
 
         let mut new_intents = Vec::<Intent>::new();
         for intent in role.intents.iter() {
-            match self.role.add_row_intent(new_role.id.unwrap(), intent.value, &mut tx).await {
+            match self.role.add_row_intent(new_role.id.unwrap(), intent.value, &user_id, &mut tx).await {
                 Ok(x) => new_intents.push(x),
                 Err(e) => {
                     tx.rollback().await?;
