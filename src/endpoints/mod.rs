@@ -22,4 +22,5 @@ pub fn guild_endpoints() -> actix_web::Scope {
         .service(guild::create_guild_channel)
         .service(guild::get_guild_channels)
         .service(guild::get_guild_channel)
+        .service(guild::create_guild_role)
 }
