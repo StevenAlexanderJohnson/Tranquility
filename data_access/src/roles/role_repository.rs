@@ -28,6 +28,18 @@ impl RoleRepository {
         .map_err(|e| e.into())
     }
 
+    pub async fn find_role(
+        &self,
+        role_id: i32,
+        guild_id: i32,
+        user_id: i32
+    ) -> Result<Role, Box<dyn std::error::Error>> {
+        // Query role
+        // Select role from the role table with role_id
+        // From the guild with guild_id
+        // Where the user with user_id is a member
+    }
+
     pub async fn add_row_intent(
         &self,
         role_id: i32,
