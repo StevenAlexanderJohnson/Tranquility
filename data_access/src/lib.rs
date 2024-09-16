@@ -220,8 +220,28 @@ impl DatabaseConnection {
     pub async fn find_owned_guilds(
         &self,
         user_id: i32,
-    ) -> Result<Option<Vec<Guild>>, Box<dyn std::error::Error>> {
-        self.guild.find_owner_guilds(user_id, &self.pool).await
+    ) -> Result<Option<Vec<GuildResponse>>, Box<dyn std::error::Error>> {
+        match self.guild.find_owner_guilds(user_id, &self.pool).await {
+            Ok(Some(guild)) => {
+                let mut guilds = guild
+                    .into_iter()
+                    .map(GuildResponse::try_from)
+                    .collect::<Result<Vec<_>, _>>()?;
+                for guild in &mut guilds {
+                    guild.channels = match self.find_guild_channels(guild.id, user_id).await {
+                        Ok(channels) => channels.unwrap_or_default(),
+                        Err(e) => {
+                            println!("{:?}", e);
+                            return Err("".into());
+                        }
+                    };
+                }
+
+                Ok(Some(guilds))
+            }
+            Ok(None) => Ok(None),
+            Err(e) => Err(e),
+        }
     }
 
     /// Finds a guild by its id.
@@ -244,8 +264,23 @@ impl DatabaseConnection {
         &self,
         guild_id: i32,
         member_id: i32,
-    ) -> Result<Option<Guild>, Box<dyn std::error::Error>> {
-        self.guild.find_by_id(guild_id, member_id, &self.pool).await
+    ) -> Result<Option<GuildResponse>, Box<dyn std::error::Error>> {
+        match self.guild.find_by_id(guild_id, member_id, &self.pool).await {
+            Ok(Some(guild)) => {
+                let mut guild = GuildResponse::try_from(guild)?;
+                guild.channels = match self.find_guild_channels(guild_id, member_id).await {
+                    Ok(channels) => channels.unwrap_or_default(),
+                    Err(e) => {
+                        println!("{:?}", e);
+                        return Err("".into());
+                    }
+                };
+
+                Ok(Some(guild))
+            }
+            Ok(None) => Ok(None),
+            Err(e) => Err(e)
+        }
     }
 
     /// Creates a new guild in the database.
