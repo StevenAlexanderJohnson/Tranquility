@@ -176,3 +176,26 @@ pub async fn create_guild_role(
         }
     }
 }
+
+#[get("/{guild_id}/{role_id}")]
+pub async fn get_guild_role(
+    repository: web::Data<DatabaseConnection>,
+    path: web::Path<(i32, i32)>
+    claims: web::ReqData<BTreeMap<String, String>>
+) -> HttpResponse {
+    // Auth
+    let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
+        Some(id) => id,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    // Call repository.find_role and match response
+    match repository.find_role(path.1, path.0, id).await {
+        Ok(Some(role)) => HttpResponse::Ok().json(role),
+        Ok(None) => HttpResponse::NotFound().finish(),
+        Err(e) => {
+            println!("{:?}", e);
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}
