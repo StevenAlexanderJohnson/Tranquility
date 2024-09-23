@@ -1,19 +1,14 @@
-use std::collections::BTreeMap;
-
 use actix_web::{get, post, web, HttpResponse, ResponseError};
 use data_access::{Channel, DatabaseConnection, Guild, RoleRequest};
 
+use crate::jwt_handler::Claims;
+
 #[get("/")]
 pub async fn get_guilds(
-    claims: web::ReqData<BTreeMap<String, String>>,
+    claims: web::ReqData<Claims>,
     repository: web::Data<DatabaseConnection>,
 ) -> HttpResponse {
-    let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
-        Some(id) => id,
-        None => return HttpResponse::Unauthorized().finish(),
-    };
-
-    match repository.find_joined_guild(id).await {
+    match repository.find_joined_guild(claims.id).await {
         Ok(Some(guilds)) => HttpResponse::Ok().json(guilds),
         Ok(None) => HttpResponse::Ok().json(Vec::<Guild>::new()),
         Err(e) => {
@@ -25,15 +20,10 @@ pub async fn get_guilds(
 
 #[get("/owned")]
 pub async fn get_owned_guilds(
-    claims: web::ReqData<BTreeMap<String, String>>,
+    claims: web::ReqData<Claims>,
     repository: web::Data<DatabaseConnection>,
 ) -> HttpResponse {
-    let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
-        Some(id) => id,
-        None => return HttpResponse::Unauthorized().finish(),
-    };
-
-    match repository.find_owned_guilds(id).await {
+    match repository.find_owned_guilds(claims.id).await {
         Ok(guilds) => HttpResponse::Ok().json(guilds),
         Err(e) => {
             println!("Failed to get guilds: {}", e);
@@ -45,15 +35,10 @@ pub async fn get_owned_guilds(
 #[get("/{guild_id}")]
 pub async fn get_guild(
     repository: web::Data<DatabaseConnection>,
-    claims: web::ReqData<BTreeMap<String, String>>,
+    claims: web::ReqData<Claims>,
     path: web::Path<i32>,
 ) -> HttpResponse {
-    let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
-        Some(id) => id,
-        None => return HttpResponse::Unauthorized().finish(),
-    };
-
-    match repository.find_guild_by_id(path.into_inner(), id).await {
+    match repository.find_guild_by_id(path.into_inner(), claims.id).await {
         Ok(Some(guild)) => HttpResponse::Ok().json(guild),
         Ok(None) => HttpResponse::NotFound().finish(),
         Err(e) => {
@@ -67,14 +52,9 @@ pub async fn get_guild(
 pub async fn create_guild(
     repository: web::Data<DatabaseConnection>,
     mut guild: web::Json<Guild>,
-    claims: web::ReqData<BTreeMap<String, String>>,
+    claims: web::ReqData<Claims>,
 ) -> HttpResponse {
-    let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
-        Some(id) => id,
-        None => return HttpResponse::Unauthorized().finish(),
-    };
-
-    guild.owner_id = Some(id);
+    guild.owner_id = Some(claims.id);
 
     match repository.create_guild(&guild).await {
         Ok(guild) => HttpResponse::Created().json(guild),
@@ -89,14 +69,9 @@ pub async fn create_guild(
 pub async fn get_guild_channels(
     repository: web::Data<DatabaseConnection>,
     path: web::Path<i32>,
-    claims: web::ReqData<BTreeMap<String, String>>,
+    claims: web::ReqData<Claims>,
 ) -> HttpResponse {
-    let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
-        Some(id) => id,
-        None => return HttpResponse::Unauthorized().finish(),
-    };
-
-    match repository.find_guild_channels(path.into_inner(), id).await {
+    match repository.find_guild_channels(path.into_inner(), claims.id).await {
         Ok(Some(guilds)) => HttpResponse::Ok().json(guilds),
         Ok(None) => HttpResponse::NotFound().finish(),
         Err(e) => {
@@ -110,17 +85,12 @@ pub async fn get_guild_channels(
 pub async fn create_guild_channel(
     repository: web::Data<DatabaseConnection>,
     path: web::Path<i32>,
-    claims: web::ReqData<BTreeMap<String, String>>,
+    claims: web::ReqData<Claims>,
     mut channel: web::Json<Channel>,
 ) -> HttpResponse {
-    let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
-        Some(id) => id,
-        None => return HttpResponse::Unauthorized().finish(),
-    };
-
     channel.guild_id = Some(path.into_inner());
 
-    match repository.create_guild_channel(&channel, id).await {
+    match repository.create_guild_channel(&channel, claims.id).await {
         Ok(Some(channel)) => HttpResponse::Created().json(channel),
         Ok(None) => HttpResponse::NotFound().finish(),
         Err(e) => {
@@ -134,14 +104,9 @@ pub async fn create_guild_channel(
 pub async fn get_guild_channel(
     repository: web::Data<DatabaseConnection>,
     path: web::Path<(i32, i32)>,
-    claims: web::ReqData<BTreeMap<String, String>>,
+    claims: web::ReqData<Claims>,
 ) -> HttpResponse {
-    let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
-        Some(id) => id,
-        None => return HttpResponse::Unauthorized().finish(),
-    };
-
-    match repository.find_channel(path.1, path.0, id).await {
+    match repository.find_channel(path.1, path.0, claims.id).await {
         Ok(Some(channel)) => HttpResponse::Ok().json(channel),
         Ok(None) => HttpResponse::NotFound().finish(),
         Err(e) => {
@@ -155,19 +120,14 @@ pub async fn get_guild_channel(
 pub async fn create_guild_role(
     repository: web::Data<DatabaseConnection>,
     path: web::Path<i32>,
-    claims: web::ReqData<BTreeMap<String, String>>,
+    claims: web::ReqData<Claims>,
     role: web::Json<RoleRequest>,
 ) -> HttpResponse {
-    let id = match claims.get("id").and_then(|id| id.parse::<i32>().ok()) {
-        Some(id) => id,
-        None => return HttpResponse::Unauthorized().finish(),
-    };
-
     if role.guild_id != path.into_inner() {
         return HttpResponse::BadRequest().finish();
     }
 
-    match repository.create_guild_role(&role, id).await {
+    match repository.create_guild_role(&role, claims.id).await {
         Ok(Some(role)) => HttpResponse::Created().json(role),
         Ok(None) => HttpResponse::BadRequest().finish(),
         Err(e) => {

@@ -4,10 +4,7 @@ use actix_web::{
     Error, HttpMessage, HttpResponse,
 };
 use futures_util::future::LocalBoxFuture;
-use std::{
-    collections::BTreeMap,
-    future::{ready, Ready},
-};
+use std::future::{ready, Ready};
 
 pub struct Auth;
 
@@ -43,13 +40,23 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        let token = req
-            .cookie("auth_token")
-            .map(|cookie| cookie.value().to_string());
-        if let Some(token) = token {
-            let claims: Result<BTreeMap<String, String>, _> = verify_token(&token);
-            if let Ok(claims) = claims {
-                req.extensions_mut().insert(claims);
+        if !req.path().starts_with("/auth/login") && !req.path().starts_with("/auth/register") {
+            let token = req
+                .cookie("auth_token")
+                .map(|cookie| cookie.value().to_string());
+            if let Some(token) = token {
+                match verify_token(&token) {
+                    Ok(claims) => {
+                        req.extensions_mut().insert(claims);
+                    }
+                    Err(e) => {
+                        println!("{:?}", e);
+                        return Box::pin(async move {
+                            let res = req.into_response(HttpResponse::Unauthorized().finish());
+                            Ok(res)
+                        });
+                    }
+                }
             } else {
                 return Box::pin(async move {
                     let res = req.into_response(HttpResponse::Unauthorized().finish());

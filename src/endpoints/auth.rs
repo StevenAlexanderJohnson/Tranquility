@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use actix_web::{
     cookie::{
         time::{Duration, OffsetDateTime},
@@ -9,7 +7,7 @@ use actix_web::{
 };
 use data_access::{AuthUser, DatabaseConnection};
 
-use crate::jwt_handler::generate_token;
+use crate::jwt_handler::{generate_token, Claims};
 
 #[post("/login")]
 pub async fn login(
@@ -61,15 +59,10 @@ pub async fn register(
 #[post("/refresh/{token}")]
 pub async fn refresh_token(
     repository: web::Data<DatabaseConnection>,
-    data: web::ReqData<BTreeMap<String, String>>,
+    data: web::ReqData<Claims>,
     token: web::Path<String>,
 ) -> HttpResponse {
-    let id = match data.get("id").and_then(|id| id.parse::<i32>().ok()) {
-        Some(x) => x,
-        None => return HttpResponse::Unauthorized().finish(),
-    };
-
-    let auth_user = match repository.refresh_auth_token(id, token.into_inner()).await {
+    let auth_user = match repository.refresh_auth_token(data.id, token.into_inner()).await {
         Ok(Some(auth_user)) => auth_user,
         Ok(None) => return HttpResponse::Unauthorized().finish(),
         Err(e) => {
