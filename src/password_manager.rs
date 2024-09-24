@@ -14,7 +14,6 @@ pub fn hash_password(password: &str) -> Result<String, Box<dyn std::error::Error
 }
 
 pub fn validate_password(password: &str, hashed: &str) -> Result<bool, Box<dyn std::error::Error>> {
-    println!("{}, {}", password, hashed);
     let hashed = PasswordHash::new(hashed)
         .map_err(|e| format!("Error processing hashed password: {:?}", e))?;
     match Argon2::default().verify_password(password.as_bytes(), &hashed) {
