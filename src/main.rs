@@ -1,6 +1,7 @@
 mod auth_middleware;
 mod endpoints;
 mod jwt_handler;
+mod password_manager;
 
 use actix_web::{
     web::{scope, Data},
