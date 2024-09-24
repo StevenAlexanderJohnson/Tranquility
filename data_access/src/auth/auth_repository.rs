@@ -27,10 +27,9 @@ impl<'a> AuthRepository {
         tx: &mut Transaction<'_, Postgres>
     ) -> Result<Option<AuthUser>, Box<dyn std::error::Error>> {
         match sqlx::query_as::<_, AuthUser>(
-            "UPDATE auth SET refresh_token = md5(random()::text) WHERE username = $1 AND password = $2 RETURNING id, username, email, refresh_token;"
+            "UPDATE auth SET refresh_token = md5(random()::text) WHERE username = $1 RETURNING id, username, password, email, refresh_token;"
         )
         .bind(&auth_user.username)
-        .bind(&auth_user.password.as_ref().expect("password was not provided"))
         .fetch_one(&mut **tx).await {
             Ok(user) => Ok(Some(user)),
             Err(sqlx::Error::RowNotFound) => Ok(None),
