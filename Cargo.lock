@@ -608,6 +608,7 @@ dependencies = [
  "futures-util",
  "hmac",
  "jwt",
+ "models",
  "serde",
  "serde_json",
  "sha2",
@@ -1455,6 +1456,13 @@ dependencies = [
  "log",
  "wasi",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "models"
+version = "0.1.0"
+dependencies = [
+ "data_access",
 ]
 
 [[package]]
