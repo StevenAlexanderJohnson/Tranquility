@@ -66,7 +66,10 @@ async fn handle_json_request(message: &str, session: &mut actix_ws::Session) {
         message_type: "Ack".into(),
         data: Some(MessageData::Guild(Guild {
             ..Default::default()
-        }))
+        })),
     };
-    session.text(serde_json::to_string(&response).expect("Unable to stringify message")).await.expect("unable to send message to client");
+    session
+        .text(serde_json::to_string(&response).expect("Unable to stringify message"))
+        .await
+        .expect("unable to send message to client");
 }

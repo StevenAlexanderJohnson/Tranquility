@@ -7,9 +7,9 @@ use sha2::Sha256;
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Claims {
     pub username: String,
-    #[serde(rename="exp")]
+    #[serde(rename = "exp")]
     pub expiration: u64,
-    pub id: i32
+    pub id: i32,
 }
 
 pub fn verify_token(token: &str) -> Result<Claims, Box<dyn std::error::Error>> {
