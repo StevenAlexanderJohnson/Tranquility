@@ -14,10 +14,10 @@ use channel::channel_repository::ChannelRepository;
 pub use channel::model::{Channel, CreateChannelRequest};
 
 use members::member_repository::MemberRepository;
-pub use members::model::Member;
+pub use members::model::{CreateMemberRequest, Member};
 
-pub use roles::model::{RoleRequest, RoleResult};
-use roles::{model::Intent, model::Role, role_repository::RoleRepository};
+pub use roles::model::{RoleRequest, RoleResult, Role};
+use roles::{model::Intent, role_repository::RoleRepository};
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
@@ -312,8 +312,10 @@ impl DatabaseConnection {
         if let Err(e) = self
             .member
             .add_user_to_guild(
-                guild.owner_id.unwrap(),
-                guild.id.unwrap(),
+                &CreateMemberRequest {
+                    guild_id: guild.id.unwrap(),
+                    user_id: guild.owner_id.unwrap(),
+                },
                 guild.owner_id.unwrap(),
                 &mut tx,
             )
