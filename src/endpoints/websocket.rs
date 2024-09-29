@@ -5,7 +5,6 @@ use models::{MessageData, WebSocketMessage};
 
 mod models {
     use data_access::{Channel, Guild};
-    use serde;
     use serde::{Deserialize, Serialize};
 
     #[derive(Serialize, Deserialize, Debug)]

@@ -28,7 +28,7 @@ pub async fn login(
         Ok(Some(user)) => {
             if let Err(e) = validate_password(
                 auth_user.password.as_ref().unwrap(),
-                &user.password.as_ref().unwrap(),
+                user.password.as_ref().unwrap(),
             ) {
                 println!("Unable to authenticate user via password: {:?}", e);
                 return HttpResponse::Unauthorized().finish();
