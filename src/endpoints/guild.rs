@@ -1,5 +1,5 @@
 use actix_web::{get, post, web, HttpResponse, ResponseError};
-use data_access::{Channel, DatabaseConnection, Guild, RoleRequest};
+use data_access::{CreateChannelRequest, DatabaseConnection, Guild, RoleRequest};
 
 use crate::jwt_handler::Claims;
 
@@ -86,7 +86,7 @@ pub async fn create_guild_channel(
     repository: web::Data<DatabaseConnection>,
     path: web::Path<i32>,
     claims: web::ReqData<Claims>,
-    mut channel: web::Json<Channel>,
+    mut channel: web::Json<CreateChannelRequest>,
 ) -> HttpResponse {
     channel.guild_id = Some(path.into_inner());
 

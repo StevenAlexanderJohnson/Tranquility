@@ -11,13 +11,13 @@ use guilds::guild_repository::GuildRepository;
 pub use guilds::model::{Guild, GuildResponse};
 
 use channel::channel_repository::ChannelRepository;
-pub use channel::model::Channel;
+pub use channel::model::{Channel, CreateChannelRequest};
 
 use members::member_repository::MemberRepository;
 pub use members::model::Member;
 
-use roles::{model:: Intent, model::Role, role_repository::RoleRepository};
-pub use roles::model::{RoleResult, RoleRequest};
+pub use roles::model::{RoleRequest, RoleResult};
+use roles::{model::Intent, model::Role, role_repository::RoleRepository};
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
@@ -66,7 +66,7 @@ pub struct DatabaseConnection {
     channel: Box<ChannelRepository>,
     guild: Box<GuildRepository>,
     member: Box<MemberRepository>,
-    role: Box<RoleRepository>
+    role: Box<RoleRepository>,
 }
 
 impl DatabaseConnection {
@@ -86,7 +86,7 @@ impl DatabaseConnection {
             channel: Box::new(ChannelRepository {}),
             guild: Box::new(GuildRepository {}),
             member: Box::new(MemberRepository {}),
-            role: Box::new(RoleRepository {})
+            role: Box::new(RoleRepository {}),
         }
     }
 
@@ -279,7 +279,7 @@ impl DatabaseConnection {
                 Ok(Some(guild))
             }
             Ok(None) => Ok(None),
-            Err(e) => Err(e)
+            Err(e) => Err(e),
         }
     }
 
@@ -352,7 +352,7 @@ impl DatabaseConnection {
 
     pub async fn create_guild_channel(
         &self,
-        channel: &Channel,
+        channel: &CreateChannelRequest,
         user_id: i32,
     ) -> Result<Option<Channel>, Box<dyn std::error::Error>> {
         let mut tx = self.pool.begin().await?;
@@ -371,13 +371,15 @@ impl DatabaseConnection {
     pub async fn create_guild_role(
         &self,
         role: &RoleRequest,
-        user_id: i32
+        user_id: i32,
     ) -> Result<Option<RoleResult>, Box<dyn std::error::Error>> {
         let mut tx = self.pool.begin().await?;
-        let new_role: Role = match self.role.create_role(role.guild_id, &role.name, &user_id, &mut tx).await {
-            Ok(x) => {
-                x
-            }
+        let new_role: Role = match self
+            .role
+            .create_role(role.guild_id, &role.name, &user_id, &mut tx)
+            .await
+        {
+            Ok(x) => x,
             Err(e) => {
                 tx.rollback().await?;
                 println!("{:?}", e);
@@ -387,7 +389,11 @@ impl DatabaseConnection {
 
         let mut new_intents = Vec::<Intent>::new();
         for &intent in role.intents.iter() {
-            match self.role.add_row_intent(new_role.id.unwrap(), intent as i32, &user_id, &mut tx).await {
+            match self
+                .role
+                .add_row_intent(new_role.id.unwrap(), intent as i32, &user_id, &mut tx)
+                .await
+            {
                 Ok(x) => new_intents.push(x),
                 Err(e) => {
                     tx.rollback().await?;
@@ -397,7 +403,7 @@ impl DatabaseConnection {
             }
         }
 
-        Ok(Some(RoleResult{
+        Ok(Some(RoleResult {
             id: new_role.id,
             name: new_role.name,
             guild_id: new_role.guild_id,

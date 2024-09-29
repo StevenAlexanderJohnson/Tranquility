@@ -2,13 +2,15 @@ use sqlx::{Pool, Postgres, Transaction};
 
 use crate::Channel;
 
+use super::model::CreateChannelRequest;
+
 #[derive(Clone)]
 pub struct ChannelRepository {}
 
 impl ChannelRepository {
     pub async fn insert(
         &self,
-        channel: &Channel,
+        channel: &CreateChannelRequest,
         user_id: i32,
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Option<Channel>, Box<dyn std::error::Error>> {
