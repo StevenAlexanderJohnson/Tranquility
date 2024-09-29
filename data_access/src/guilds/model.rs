@@ -10,8 +10,8 @@ use crate::Channel;
 pub struct Guild {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<i32>,
-    pub name: String,
-    pub description: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
     pub owner_id: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_date: Option<chrono::DateTime<chrono::Utc>>,
@@ -28,6 +28,12 @@ pub struct GuildResponse {
     pub channels: Vec<Channel>,
     pub created_date: chrono::DateTime<chrono::Utc>,
     pub updated_date: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CreateGuildRequest {
+    pub name: String,
+    pub description: String,
 }
 
 #[derive(Debug, Clone)]
@@ -51,8 +57,12 @@ impl TryFrom<Guild> for GuildResponse {
             id: value.id.ok_or(FromGuildError(
                 "ID was not provided while casting Guild to GuildResponse".into(),
             ))?,
-            name: value.name,
-            description: value.description,
+            name: value.name.ok_or(FromGuildError(
+                "Guild name was not provided while casting Guild to GuildResponse".into(),
+            ))?,
+            description: value.description.ok_or(FromGuildError(
+                "Description was not provided while casting Guild to GuildResponse".into(),
+            ))?,
             owner_id: value.owner_id.ok_or(FromGuildError(
                 "Owner ID was not provided while casting Guild to GuildResponse".into(),
             ))?,

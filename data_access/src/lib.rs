@@ -8,7 +8,7 @@ use auth::auth_repository::AuthRepository;
 pub use auth::model::{AuthUser, CreateAuthUserRequest};
 
 use guilds::guild_repository::GuildRepository;
-pub use guilds::model::{Guild, GuildResponse};
+pub use guilds::model::{CreateGuildRequest, Guild, GuildResponse};
 
 use channel::channel_repository::ChannelRepository;
 pub use channel::model::{Channel, CreateChannelRequest};
@@ -16,7 +16,7 @@ pub use channel::model::{Channel, CreateChannelRequest};
 use members::member_repository::MemberRepository;
 pub use members::model::{CreateMemberRequest, Member};
 
-pub use roles::model::{RoleRequest, RoleResult, Role};
+pub use roles::model::{Role, RoleRequest, RoleResult};
 use roles::{model::Intent, role_repository::RoleRepository};
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
@@ -298,10 +298,14 @@ impl DatabaseConnection {
     ///
     /// A result containing the created guild or an error.
     /// The created guild will have the `id` field set as well as the `created_date` and `updated_date` fields.
-    pub async fn create_guild(&self, guild: &Guild) -> Result<Guild, Box<dyn std::error::Error>> {
+    pub async fn create_guild(
+        &self,
+        guild: &CreateGuildRequest,
+        owner_id: i32,
+    ) -> Result<Guild, Box<dyn std::error::Error>> {
         let mut tx = self.pool.begin().await?;
 
-        let guild = match self.guild.insert(guild, &mut tx).await {
+        let guild = match self.guild.insert(guild, owner_id, &mut tx).await {
             Ok(guild) => guild,
             Err(e) => {
                 tx.rollback().await?;
