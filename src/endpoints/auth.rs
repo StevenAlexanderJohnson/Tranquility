@@ -5,7 +5,7 @@ use actix_web::{
     },
     post, web, HttpResponse,
 };
-use data_access::{AuthUser, DatabaseConnection};
+use data_access::{AuthUser, CreateAuthUserRequest, DatabaseConnection};
 
 use crate::password_manager::hash_password;
 use crate::{
@@ -61,15 +61,11 @@ pub async fn login(
 
 #[post("/register")]
 pub async fn register(
-    mut auth_user: web::Json<AuthUser>,
+    mut auth_user: web::Json<CreateAuthUserRequest>,
     repository: web::Data<DatabaseConnection>,
 ) -> HttpResponse {
-    if auth_user.email.is_none() || auth_user.password.is_none() {
-        return HttpResponse::BadRequest().finish();
-    }
-
-    auth_user.password = match hash_password(&auth_user.password.as_ref().unwrap()) {
-        Ok(password) => Some(password),
+    auth_user.password = match hash_password(&auth_user.password) {
+        Ok(password) => password,
         Err(e) => {
             println!("{:?}", e);
             return HttpResponse::InternalServerError().finish();

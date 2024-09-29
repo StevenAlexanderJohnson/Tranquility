@@ -1,6 +1,6 @@
 use sqlx::{Pool, Postgres, Transaction};
 
-use crate::AuthUser;
+use crate::{AuthUser, CreateAuthUserRequest};
 
 #[derive(Clone)]
 pub struct AuthRepository {}
@@ -8,15 +8,15 @@ pub struct AuthRepository {}
 impl<'a> AuthRepository {
     pub async fn insert(
         &self,
-        auth_user: &AuthUser,
+        auth_user: &CreateAuthUserRequest,
         pool: &Pool<Postgres>,
     ) -> Result<AuthUser, Box<dyn std::error::Error>> {
         sqlx::query_as::<_, AuthUser>(
             "INSERT INTO auth (username, password, email) VALUES ($1, $2, $3) RETURNING id, username, email, refresh_token;"
         )
         .bind(auth_user.username.to_string())
-        .bind(auth_user.password.as_ref().expect("Password was not provided.").to_string())
-        .bind(auth_user.email.as_ref().expect("Email has not been provided.").to_string())
+        .bind(auth_user.password.to_string())
+        .bind(auth_user.email.to_string())
         .fetch_one(pool)
         .await.map_err(|e| e.into())
     }

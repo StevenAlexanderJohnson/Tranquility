@@ -21,3 +21,24 @@ pub struct AuthUser {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_date: Option<DateTime<Utc>>,
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct CreateAuthUserRequest {
+    pub username: String,
+    pub password: String,
+    pub email: String
+}
+
+impl From<CreateAuthUserRequest> for AuthUser {
+    fn from(value: CreateAuthUserRequest) -> Self {
+        AuthUser {
+            id: None,
+            username: value.username,
+            password: Some(value.password),
+            email: Some(value.email),
+            refresh_token: None,
+            created_date: None,
+            updated_date: None
+        }
+    }
+}

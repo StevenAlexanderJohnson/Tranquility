@@ -5,7 +5,7 @@ mod members;
 mod roles;
 
 use auth::auth_repository::AuthRepository;
-pub use auth::model::AuthUser;
+pub use auth::model::{AuthUser, CreateAuthUserRequest};
 
 use guilds::guild_repository::GuildRepository;
 pub use guilds::model::{Guild, GuildResponse};
@@ -102,7 +102,7 @@ impl DatabaseConnection {
     /// The returned user will have the 'id' field set as well as the `created_date` and `updated_date` fields.
     pub async fn register_user(
         &self,
-        user: &AuthUser,
+        user: &CreateAuthUserRequest,
     ) -> Result<AuthUser, Box<dyn std::error::Error>> {
         self.auth
             .insert(user, &self.pool)
