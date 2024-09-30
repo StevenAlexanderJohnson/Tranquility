@@ -2,6 +2,8 @@ use sqlx::{Pool, Postgres, Transaction};
 
 use crate::Guild;
 
+use super::model::CreateGuildRequest;
+
 #[derive(Clone)]
 pub struct GuildRepository {}
 
@@ -78,7 +80,8 @@ impl GuildRepository {
 
     pub async fn insert(
         &self,
-        guild: &Guild,
+        guild: &CreateGuildRequest,
+        owner_id: i32,
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Guild, Box<dyn std::error::Error>> {
         sqlx::query_as::<_, Guild>(
@@ -90,7 +93,7 @@ impl GuildRepository {
         )
         .bind(guild.name.to_string())
         .bind(guild.description.to_string())
-        .bind(guild.owner_id)
+        .bind(owner_id)
         .fetch_one(&mut **tx)
         .await
         .map_err(|e| e.into())

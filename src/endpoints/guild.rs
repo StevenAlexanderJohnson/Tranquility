@@ -1,5 +1,7 @@
 use actix_web::{get, post, web, HttpResponse, ResponseError};
-use data_access::{Channel, DatabaseConnection, Guild, RoleRequest};
+use data_access::{
+    CreateChannelRequest, CreateGuildRequest, DatabaseConnection, Guild, RoleRequest,
+};
 
 use crate::jwt_handler::Claims;
 
@@ -38,7 +40,10 @@ pub async fn get_guild(
     claims: web::ReqData<Claims>,
     path: web::Path<i32>,
 ) -> HttpResponse {
-    match repository.find_guild_by_id(path.into_inner(), claims.id).await {
+    match repository
+        .find_guild_by_id(path.into_inner(), claims.id)
+        .await
+    {
         Ok(Some(guild)) => HttpResponse::Ok().json(guild),
         Ok(None) => HttpResponse::NotFound().finish(),
         Err(e) => {
@@ -51,12 +56,10 @@ pub async fn get_guild(
 #[post("/")]
 pub async fn create_guild(
     repository: web::Data<DatabaseConnection>,
-    mut guild: web::Json<Guild>,
+    guild: web::Json<CreateGuildRequest>,
     claims: web::ReqData<Claims>,
 ) -> HttpResponse {
-    guild.owner_id = Some(claims.id);
-
-    match repository.create_guild(&guild).await {
+    match repository.create_guild(&guild, claims.id).await {
         Ok(guild) => HttpResponse::Created().json(guild),
         Err(e) => {
             println!("{:?}", e);
@@ -71,7 +74,10 @@ pub async fn get_guild_channels(
     path: web::Path<i32>,
     claims: web::ReqData<Claims>,
 ) -> HttpResponse {
-    match repository.find_guild_channels(path.into_inner(), claims.id).await {
+    match repository
+        .find_guild_channels(path.into_inner(), claims.id)
+        .await
+    {
         Ok(Some(guilds)) => HttpResponse::Ok().json(guilds),
         Ok(None) => HttpResponse::NotFound().finish(),
         Err(e) => {
@@ -86,7 +92,7 @@ pub async fn create_guild_channel(
     repository: web::Data<DatabaseConnection>,
     path: web::Path<i32>,
     claims: web::ReqData<Claims>,
-    mut channel: web::Json<Channel>,
+    mut channel: web::Json<CreateChannelRequest>,
 ) -> HttpResponse {
     channel.guild_id = Some(path.into_inner());
 
