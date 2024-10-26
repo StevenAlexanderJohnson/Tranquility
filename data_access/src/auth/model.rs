@@ -1,3 +1,4 @@
+use data_models::CreateAuthUserRequest;
 use serde::{Deserialize, Serialize};
 use sqlx::{
     self,
@@ -20,13 +21,6 @@ pub struct AuthUser {
     pub created_date: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_date: Option<DateTime<Utc>>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct CreateAuthUserRequest {
-    pub username: String,
-    pub password: String,
-    pub email: String
 }
 
 impl From<CreateAuthUserRequest> for AuthUser {

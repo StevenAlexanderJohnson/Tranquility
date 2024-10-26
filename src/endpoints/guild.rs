@@ -1,7 +1,6 @@
 use actix_web::{get, post, web, HttpResponse, ResponseError};
-use data_access::{
-    CreateChannelRequest, CreateGuildRequest, DatabaseConnection, Guild, RoleRequest,
-};
+use data_access::{DatabaseConnection, Guild};
+use data_models::{CreateChannelRequest, CreateGuildRequest, CreateRoleRequest};
 
 use crate::jwt_handler::Claims;
 
@@ -127,7 +126,7 @@ pub async fn create_guild_role(
     repository: web::Data<DatabaseConnection>,
     path: web::Path<i32>,
     claims: web::ReqData<Claims>,
-    role: web::Json<RoleRequest>,
+    role: web::Json<CreateRoleRequest>,
 ) -> HttpResponse {
     if role.guild_id != path.into_inner() {
         return HttpResponse::BadRequest().finish();

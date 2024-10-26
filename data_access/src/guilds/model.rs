@@ -30,12 +30,6 @@ pub struct GuildResponse {
     pub updated_date: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct CreateGuildRequest {
-    pub name: String,
-    pub description: String,
-}
-
 #[derive(Debug, Clone)]
 pub struct FromGuildError(String);
 impl fmt::Display for FromGuildError {
