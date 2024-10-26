@@ -15,19 +15,11 @@ pub struct Message {
     pub updated_date: Option<DateTime<Utc>>
 }
 
-#[derive(Serialize, Deserialize, FromRow, Default, Debug)]
-#[sqlx(default)]
-pub struct Attachment {
-    pub id: Option<i32>,
-    pub content_uri: Option<String>,
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct MessageResponse {
     pub id: i32,
     pub author_id: i32,
     pub content: String,
-    pub attachments: Vec<String>,
     pub created_date: DateTime<Utc>,
     pub updated_date: DateTime<Utc>
 }
