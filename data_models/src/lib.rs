@@ -15,3 +15,6 @@ pub use messages::CreateMessageRequest;
 
 mod roles;
 pub use roles::CreateRoleRequest;
+
+mod websocket;
+pub use websocket::{WebSocketMessage, MessageData};
