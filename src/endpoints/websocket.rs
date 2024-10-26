@@ -1,24 +1,6 @@
 use actix_web::{get, rt, web, Error, HttpRequest, HttpResponse};
 use actix_ws::AggregatedMessage;
-use data_access::Guild;
-use models::{MessageData, WebSocketMessage};
-
-mod models {
-    use data_access::{Channel, Guild};
-    use serde::{Deserialize, Serialize};
-
-    #[derive(Serialize, Deserialize, Debug)]
-    pub enum MessageData {
-        Channel(Channel),
-        Guild(Guild),
-    }
-
-    #[derive(Serialize, Deserialize, Debug)]
-    pub struct WebSocketMessage {
-        pub message_type: String,
-        pub data: Option<MessageData>,
-    }
-}
+use data_models::{CreateGuildRequest, MessageData, WebSocketMessage};
 
 #[get("/")]
 pub async fn echo(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, Error> {
@@ -63,8 +45,9 @@ async fn handle_json_request(message: &str, session: &mut actix_ws::Session) {
 
     let response = WebSocketMessage {
         message_type: "Ack".into(),
-        data: Some(MessageData::Guild(Guild {
-            ..Default::default()
+        data: Some(MessageData::Guild(CreateGuildRequest {
+            description: "Something".into(),
+            name: "else".into()
         })),
     };
     session
