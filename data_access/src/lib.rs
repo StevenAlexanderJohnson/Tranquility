@@ -2,24 +2,32 @@ mod auth;
 mod channel;
 mod guilds;
 mod members;
+mod messages;
 mod roles;
 
 use auth::auth_repository::AuthRepository;
-pub use auth::model::{AuthUser, CreateAuthUserRequest};
+pub use auth::model::AuthUser;
 
 use guilds::guild_repository::GuildRepository;
-pub use guilds::model::{CreateGuildRequest, Guild, GuildResponse};
+pub use guilds::model::{Guild, GuildResponse};
 
 use channel::channel_repository::ChannelRepository;
-pub use channel::model::{Channel, CreateChannelRequest};
+pub use channel::model::Channel;
 
 use members::member_repository::MemberRepository;
-pub use members::model::{CreateMemberRequest, Member};
+pub use members::model::Member;
 
-pub use roles::model::{Role, RoleRequest, RoleResult};
+pub use roles::model::{Role, RoleResult};
 use roles::{model::Intent, role_repository::RoleRepository};
 
+use messages::message_repository::MessageRepository;
+pub use messages::model::Message;
+
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
+
+use data_models::{
+    CreateAuthUserRequest, CreateChannelRequest, CreateGuildRequest, CreateMemberRequest, CreateMessageRequest, CreateRoleRequest
+};
 
 /// Creates a connection pool to the database
 ///
@@ -67,6 +75,7 @@ pub struct DatabaseConnection {
     guild: Box<GuildRepository>,
     member: Box<MemberRepository>,
     role: Box<RoleRepository>,
+    message: Box<MessageRepository>,
 }
 
 impl DatabaseConnection {
@@ -87,6 +96,7 @@ impl DatabaseConnection {
             guild: Box::new(GuildRepository {}),
             member: Box::new(MemberRepository {}),
             role: Box::new(RoleRepository {}),
+            message: Box::new(MessageRepository {}),
         }
     }
 
@@ -376,7 +386,7 @@ impl DatabaseConnection {
 
     pub async fn create_guild_role(
         &self,
-        role: &RoleRequest,
+        role: &CreateRoleRequest,
         user_id: i32,
     ) -> Result<Option<RoleResult>, Box<dyn std::error::Error>> {
         let mut tx = self.pool.begin().await?;
@@ -417,5 +427,23 @@ impl DatabaseConnection {
             created_date: new_role.created_date,
             updated_date: new_role.updated_date,
         }))
+    }
+
+    pub async fn create_message(
+        &self,
+        message: &CreateMessageRequest,
+        user_id: i32,
+    ) -> Result<Message, Box<dyn std::error::Error>> {
+        let mut tx = self.pool.begin().await?;
+        match self.message.insert(message, user_id, &mut tx).await {
+            Ok(x) => {
+                tx.commit().await?;
+                Ok(x)
+            }
+            Err(e) => {
+                tx.rollback().await?;
+                Err(e)
+            }
+        }
     }
 }

@@ -2,7 +2,7 @@ use sqlx::{Pool, Postgres, Transaction};
 
 use crate::Guild;
 
-use super::model::CreateGuildRequest;
+use data_models::CreateGuildRequest;
 
 #[derive(Clone)]
 pub struct GuildRepository {}

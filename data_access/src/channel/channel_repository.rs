@@ -2,7 +2,7 @@ use sqlx::{Pool, Postgres, Transaction};
 
 use crate::Channel;
 
-use super::model::CreateChannelRequest;
+use data_models::CreateChannelRequest;
 
 #[derive(Clone)]
 pub struct ChannelRepository {}

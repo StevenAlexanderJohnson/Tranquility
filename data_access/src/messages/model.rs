@@ -23,13 +23,6 @@ pub struct Attachment {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct CreateMessageRequest {
-    pub channel_id: i32,
-    pub content: String,
-    pub attachments: Option<String>
-}
-
-#[derive(Serialize, Deserialize)]
 pub struct MessageResponse {
     pub id: i32,
     pub author_id: i32,

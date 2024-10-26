@@ -17,9 +17,3 @@ pub struct Member {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_date: Option<DateTime<Utc>>,
 }
-
-#[derive(Serialize, Deserialize)]
-pub struct CreateMemberRequest {
-    pub user_id: i32,
-    pub guild_id: i32,
-}

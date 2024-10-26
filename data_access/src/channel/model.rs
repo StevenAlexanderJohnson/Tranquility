@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use data_models::CreateChannelRequest;
 
 #[derive(Serialize, Deserialize, FromRow, Default, Debug)]
 pub struct Channel {
@@ -13,12 +14,6 @@ pub struct Channel {
     pub created_date: Option<chrono::DateTime<chrono::Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_date: Option<chrono::DateTime<chrono::Utc>>
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct CreateChannelRequest {
-    pub name: String,
-    pub guild_id: Option<i32>
 }
 
 impl From<CreateChannelRequest> for Channel {

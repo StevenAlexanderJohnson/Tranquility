@@ -2,7 +2,7 @@ use sqlx::{Postgres, Transaction};
 
 use crate::Message;
 
-use super::model::CreateMessageRequest;
+use data_models::CreateMessageRequest;
 
 #[derive(Clone)]
 pub struct MessageRepository {}

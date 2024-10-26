@@ -2,7 +2,7 @@ use sqlx::{Postgres, Transaction};
 
 use crate::Member;
 
-use super::model::CreateMemberRequest;
+use data_models::CreateMemberRequest;
 
 #[derive(Clone)]
 pub struct MemberRepository {}

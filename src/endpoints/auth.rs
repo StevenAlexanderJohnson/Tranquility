@@ -5,7 +5,9 @@ use actix_web::{
     },
     post, web, HttpResponse,
 };
-use data_access::{AuthUser, CreateAuthUserRequest, DatabaseConnection};
+use data_access::{AuthUser, DatabaseConnection};
+
+use data_models::CreateAuthUserRequest;
 
 use crate::password_manager::hash_password;
 use crate::{

@@ -605,6 +605,7 @@ dependencies = [
  "actix-ws",
  "argon2",
  "data_access",
+ "data_models",
  "futures-util",
  "hmac",
  "jwt",
@@ -739,8 +740,16 @@ name = "data_access"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "data_models",
  "serde",
  "sqlx",
+]
+
+[[package]]
+name = "data_models"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
