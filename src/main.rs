@@ -12,7 +12,9 @@ use data_access::DatabaseConnection;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    println!("Connecting to the database...");
     let data_access = DatabaseConnection::new(data_access::create_connection_pool(32).await);
+    println!("Connected to the database\n");
 
     HttpServer::new(move || {
         App::new()
