@@ -35,6 +35,13 @@ impl RoleRepository {
         user_id: i32
     ) -> Result<Role, Box<dyn std::error::Error>> {
         // Query role
+        sqlx:;query_as::<_, Role>(
+            r#"
+            SELECT r.id, r.name, r.guild_id, r.created_date, r.updated_date
+            FROM role r
+            JOIN guild g on r.guild_id = g.id
+            "#
+        )
         // Select role from the role table with role_id
         // From the guild with guild_id
         // Where the user with user_id is a member
