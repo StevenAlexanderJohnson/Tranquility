@@ -1,15 +1,18 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{CreateChannelRequest, CreateGuildRequest};
+use crate::{CreateChannelRequest, CreateGuildRequest, CreateMessageRequest};
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(untagged)]
 pub enum MessageData {
     Channel(CreateChannelRequest),
     Guild(CreateGuildRequest),
+    Message(CreateMessageRequest),
+    #[serde(rename = "ack", alias = "Ack")]
+    Ack(String)
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct WebSocketMessage {
-    pub message_type: String,
-    pub data: Option<MessageData>,
+    pub data: MessageData,
 }

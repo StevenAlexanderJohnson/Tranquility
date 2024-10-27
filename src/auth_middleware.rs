@@ -1,6 +1,7 @@
 use crate::jwt_handler::verify_token;
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
+    http::header,
     Error, HttpMessage, HttpResponse,
 };
 use futures_util::future::LocalBoxFuture;
@@ -24,6 +25,17 @@ where
     }
 }
 
+fn get_auth_header<'a>(req: &'a ServiceRequest) -> Option<String> {
+    let header = req.headers().get(header::AUTHORIZATION)?;
+
+    let bearer = header.to_str().ok()?.split("Bearer ").skip(1).collect::<Vec<&str>>();
+
+    if let Some(&token) = bearer.first() {
+        return Some(token.to_string())
+    }
+    return None
+}
+
 pub struct AuthMiddleware<S> {
     service: S,
 }
@@ -43,7 +55,9 @@ where
         if !req.path().starts_with("/auth/login") && !req.path().starts_with("/auth/register") {
             let token = req
                 .cookie("auth_token")
-                .map(|cookie| cookie.value().to_string());
+                .map(|cookie| cookie.value().to_string())
+                .or(get_auth_header(&req));
+            println!("{:?}", token);
             if let Some(token) = token {
                 match verify_token(&token) {
                     Ok(claims) => {
