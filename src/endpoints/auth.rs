@@ -66,6 +66,10 @@ pub async fn register(
     mut auth_user: web::Json<CreateAuthUserRequest>,
     repository: web::Data<DatabaseConnection>,
 ) -> HttpResponse {
+    if auth_user.password != auth_user.confirm_password {
+        return HttpResponse::Unauthorized().finish();
+    }
+
     auth_user.password = match hash_password(&auth_user.password) {
         Ok(password) => password,
         Err(e) => {
