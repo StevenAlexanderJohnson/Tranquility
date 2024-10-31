@@ -1,4 +1,4 @@
-use data_models::CreateAuthUserRequest;
+use data_models::{AuthUserResponse, CreateAuthUserRequest};
 use serde::{Deserialize, Serialize};
 use sqlx::{
     self,
@@ -32,7 +32,22 @@ impl From<CreateAuthUserRequest> for AuthUser {
             email: Some(value.email),
             refresh_token: None,
             created_date: None,
-            updated_date: None
+            updated_date: None,
         }
+    }
+}
+
+impl TryFrom<AuthUser> for AuthUserResponse {
+    type Error = &'static str;
+
+    fn try_from(value: AuthUser) -> Result<Self, Self::Error> {
+        Ok(Self {
+            id: value.id.ok_or("Id was not returned from the database")?,
+            username: value.username,
+            token: String::from(""),
+            refresh_token: value.refresh_token.ok_or("Refresh token was not provided from the database")?,
+            created_date: value.created_date.ok_or("Created date was not provided by the database")?,
+            updated_date: value.updated_date.ok_or("Updated date was not provided by the database")?,
+        })
     }
 }

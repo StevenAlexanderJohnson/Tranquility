@@ -7,7 +7,7 @@ use actix_web::{
 };
 use data_access::{AuthUser, DatabaseConnection};
 
-use data_models::CreateAuthUserRequest;
+use data_models::{AuthUserResponse, CreateAuthUserRequest};
 
 use crate::password_manager::hash_password;
 use crate::{
@@ -43,15 +43,18 @@ pub async fn login(
                     return HttpResponse::InternalServerError().finish();
                 }
             };
-            let cookie = Cookie::build("auth_token", jwt)
+            let cookie = Cookie::build("auth_token", &jwt)
                 .domain("localhost")
                 .path("/")
                 .expires(OffsetDateTime::now_utc().checked_add(Duration::minutes(10)))
                 .finish();
-            HttpResponse::Ok().cookie(cookie).json(AuthUser {
-                password: None,
-                ..user
-            })
+
+            AuthUserResponse::try_from(user)
+                .map(|mut response| {
+                    response.token = jwt.clone();
+                    HttpResponse::Ok().cookie(cookie).json(response)
+                })
+                .unwrap_or_else(|_| HttpResponse::InternalServerError().finish())
         }
         Ok(None) => HttpResponse::Unauthorized().finish(),
         Err(e) => {
