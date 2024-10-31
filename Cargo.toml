@@ -16,3 +16,4 @@ argon2 = "0.5"
 
 data_access = {path = "./data_access"}
 data_models = {path = "./data_models"}
+actix-cors = "0.7.0"

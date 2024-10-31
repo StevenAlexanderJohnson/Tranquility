@@ -1,5 +1,5 @@
 mod auth;
-pub use auth::CreateAuthUserRequest;
+pub use {auth::CreateAuthUserRequest, auth::AuthUserResponse};
 
 mod channel;
 pub use channel::CreateChannelRequest;
