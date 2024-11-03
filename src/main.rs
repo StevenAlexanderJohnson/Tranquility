@@ -12,7 +12,6 @@ use actix_web::{
 };
 use auth_middleware::Auth;
 use data_access::DatabaseConnection;
-use env_logger;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {

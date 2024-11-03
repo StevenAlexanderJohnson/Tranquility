@@ -1,6 +1,7 @@
 mod message;
 
 use actix_web::{error::ErrorUnauthorized, get, rt, web, Error, HttpRequest, HttpResponse};
+
 use actix_ws::{AggregatedMessage, CloseReason};
 use data_access::DatabaseConnection;
 use data_models::{AuthUserResponse, MessageData, WebSocketMessage};
@@ -17,17 +18,14 @@ pub async fn gateway(
     let (res, session, stream) = match actix_ws::handle(&req, stream) {
         Ok(res) => res,
         Err(e) => {
-            return Err(Error::from(e));
+            return Err(e);
         }
     };
     println!("WebSocket connection initiated");
 
     // Login with path variables
     let user = match repository.websocket_login(path.0, &path.1).await {
-        Ok(user) => 
-        {
-            user
-        },
+        Ok(user) => user,
         Err(e) => {
             println!("Error while logging in in websocket: {:?}", e);
             let _ = session
@@ -36,7 +34,7 @@ pub async fn gateway(
                     description: Some(String::from("Unable to authenticate user.")),
                 }))
                 .await;
-            return Err(Error::from(ErrorUnauthorized("Invalid login")));
+            return Err(ErrorUnauthorized("Invalid login"));
         }
     };
 
@@ -99,8 +97,6 @@ async fn handle_json_request(
             .text(serde_json::to_string(&response).expect("Unable to stringify message"))
             .await
             .expect("Unable to send message to client");
-
-        return;
     } else {
         let response = WebSocketMessage {
             data: MessageData::Ack(String::from("ack")),

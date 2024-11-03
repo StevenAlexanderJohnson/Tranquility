@@ -25,15 +25,20 @@ where
     }
 }
 
-fn get_auth_header<'a>(req: &'a ServiceRequest) -> Option<String> {
+fn get_auth_header(req: &ServiceRequest) -> Option<String> {
     let header = req.headers().get(header::AUTHORIZATION)?;
 
-    let bearer = header.to_str().ok()?.split("Bearer ").skip(1).collect::<Vec<&str>>();
+    let bearer = header
+        .to_str()
+        .ok()?
+        .split("Bearer ")
+        .skip(1)
+        .collect::<Vec<&str>>();
 
     if let Some(&token) = bearer.first() {
-        return Some(token.to_string())
+        return Some(token.to_string());
     }
-    return None
+    None
 }
 
 pub struct AuthMiddleware<S> {
@@ -52,7 +57,9 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        if !req.path().starts_with("/api/auth/login") && !req.path().starts_with("/api/auth/register") {
+        if !req.path().starts_with("/api/auth/login")
+            && !req.path().starts_with("/api/auth/register")
+        {
             let token = req
                 .cookie("auth_token")
                 .map(|cookie| cookie.value().to_string())
