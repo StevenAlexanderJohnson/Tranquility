@@ -14,4 +14,5 @@ pub struct AuthUserResponse {
     pub username: String,
     pub token: String,
     pub refresh_token: String,
+    pub websocket_token: String
 }

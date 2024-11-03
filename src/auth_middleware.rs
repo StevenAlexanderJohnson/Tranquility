@@ -52,7 +52,7 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        if !req.path().starts_with("/auth/login") && !req.path().starts_with("/auth/register") {
+        if !req.path().starts_with("/api/auth/login") && !req.path().starts_with("/api/auth/register") {
             let token = req
                 .cookie("auth_token")
                 .map(|cookie| cookie.value().to_string())

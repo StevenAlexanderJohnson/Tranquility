@@ -18,6 +18,8 @@ pub struct AuthUser {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub refresh_token: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub websocket_token: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub created_date: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_date: Option<DateTime<Utc>>,
@@ -31,6 +33,7 @@ impl From<CreateAuthUserRequest> for AuthUser {
             password: Some(value.password),
             email: Some(value.email),
             refresh_token: None,
+            websocket_token: None,
             created_date: None,
             updated_date: None,
         }
@@ -46,6 +49,7 @@ impl TryFrom<AuthUser> for AuthUserResponse {
             username: value.username,
             token: String::from(""),
             refresh_token: value.refresh_token.ok_or("Refresh token was not provided from the database")?,
+            websocket_token: value.websocket_token.ok_or("Websocket token was not provided from the database")?
         })
     }
 }

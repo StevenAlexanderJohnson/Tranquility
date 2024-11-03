@@ -26,7 +26,8 @@ pub use messages::model::Message;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
 use data_models::{
-    CreateAuthUserRequest, CreateChannelRequest, CreateGuildRequest, CreateMemberRequest, CreateMessageRequest, CreateRoleRequest
+    AuthUserResponse, CreateAuthUserRequest, CreateChannelRequest, CreateGuildRequest,
+    CreateMemberRequest, CreateMessageRequest, CreateRoleRequest,
 };
 
 /// Creates a connection pool to the database
@@ -144,6 +145,30 @@ impl DatabaseConnection {
                 Err(e)
             }
         }
+    }
+
+    pub async fn websocket_login(
+        &self,
+        id: i32,
+        websocket_token: &str,
+    ) -> Result<AuthUserResponse, Box<dyn std::error::Error>> {
+        let mut tx = self.pool.begin().await?;
+        let user = match self.auth.find_websocket(id, websocket_token, &mut tx).await {
+            Ok(Some(x)) => {
+                tx.commit().await?;
+                x
+            }
+            Ok(None) => {
+                tx.rollback().await?;
+                return Err(Box::from("User not found"));
+            }
+            Err(e) => {
+                tx.rollback().await?;
+                return Err(e);
+            }
+        };
+
+        Ok(AuthUserResponse::try_from(user)?)
     }
 
     /// Generates a new refresh token.

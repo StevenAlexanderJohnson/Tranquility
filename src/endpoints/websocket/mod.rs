@@ -1,26 +1,42 @@
 mod message;
 
-use actix_web::{get, rt, web, Error, HttpRequest, HttpResponse};
+use actix_web::{error::ErrorUnauthorized, get, rt, web, Error, HttpRequest, HttpResponse};
 use actix_ws::{AggregatedMessage, CloseReason};
 use data_access::DatabaseConnection;
-use data_models::{MessageData, WebSocketMessage};
+use data_models::{AuthUserResponse, MessageData, WebSocketMessage};
 use message::handle_message;
 
-#[get("/")]
+#[get("/{id}/{token}")]
 pub async fn gateway(
     req: HttpRequest,
     stream: web::Payload,
+    path: web::Path<(i32, String)>,
     repository: web::Data<DatabaseConnection>,
 ) -> Result<HttpResponse, Error> {
     let (res, session, stream) = match actix_ws::handle(&req, stream) {
-        Ok(res) => {
-            res
-        }
+        Ok(res) => res,
         Err(e) => {
             return Err(Error::from(e));
         }
     };
     println!("WebSocket connection initiated");
+
+    let user = match repository.websocket_login(path.0, &path.1).await {
+        Ok(user) => 
+        {
+            user
+        },
+        Err(e) => {
+            println!("Error while logging in in websocket: {:?}", e);
+            let _ = session
+                .close(Some(CloseReason {
+                    code: actix_ws::CloseCode::Invalid,
+                    description: Some(String::from("Unable to authenticate user.")),
+                }))
+                .await;
+            return Err(Error::from(ErrorUnauthorized("Invalid login")));
+        }
+    };
 
     let mut stream = stream
         .aggregate_continuations()
@@ -53,12 +69,12 @@ pub async fn gateway(
                 .await;
             return;
         }
-        
+
         while let Some(Ok(msg)) = stream.recv().await {
             let mut session = session.clone();
             match msg {
                 AggregatedMessage::Text(text) => {
-                    handle_json_request(&text, 0, &mut session, &repository).await
+                    handle_json_request(&text, 0, &user, &mut session, &repository).await
                 }
                 AggregatedMessage::Ping(msg) => {
                     println!("Ping received");
@@ -100,6 +116,7 @@ fn handle_hello_request(message: &str) -> Result<(), Box<dyn std::error::Error>>
 async fn handle_json_request(
     message: &str,
     user_id: i32,
+    _user: &AuthUserResponse,
     session: &mut actix_ws::Session,
     repository: &DatabaseConnection,
 ) {
