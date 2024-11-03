@@ -57,7 +57,6 @@ where
                 .cookie("auth_token")
                 .map(|cookie| cookie.value().to_string())
                 .or(get_auth_header(&req));
-            println!("{:?}", token);
             if let Some(token) = token {
                 match verify_token(&token) {
                     Ok(claims) => {

@@ -1,21 +1,25 @@
 mod message;
 
 use actix_web::{get, rt, web, Error, HttpRequest, HttpResponse};
-use actix_ws::AggregatedMessage;
+use actix_ws::{AggregatedMessage, CloseReason};
 use data_access::DatabaseConnection;
 use data_models::{MessageData, WebSocketMessage};
 use message::handle_message;
 
-use crate::jwt_handler::Claims;
-
 #[get("/")]
-pub async fn echo(
+pub async fn gateway(
     req: HttpRequest,
     stream: web::Payload,
-    claims: web::ReqData<Claims>,
     repository: web::Data<DatabaseConnection>,
 ) -> Result<HttpResponse, Error> {
-    let (res, session, stream) = actix_ws::handle(&req, stream)?;
+    let (res, session, stream) = match actix_ws::handle(&req, stream) {
+        Ok(res) => {
+            res
+        }
+        Err(e) => {
+            return Err(Error::from(e));
+        }
+    };
     println!("WebSocket connection initiated");
 
     let mut stream = stream
@@ -24,11 +28,37 @@ pub async fn echo(
         .max_continuation_size(2_usize.pow(20));
 
     rt::spawn(async move {
+        let hello_message = stream
+            .recv()
+            .await
+            .and_then(|result| result.ok())
+            .and_then(|msg| match msg {
+                AggregatedMessage::Text(addr) => Some(addr),
+                _ => None,
+            });
+        if hello_message.is_none()
+            || match handle_hello_request(&hello_message.unwrap()) {
+                Ok(_) => false,
+                Err(e) => {
+                    eprintln!("Error handling hello request: {:?}", e);
+                    true
+                }
+            }
+        {
+            let _ = session
+                .close(Some(CloseReason {
+                    code: actix_ws::CloseCode::Invalid,
+                    description: Some(String::from("Invalid hello message")),
+                }))
+                .await;
+            return;
+        }
+        
         while let Some(Ok(msg)) = stream.recv().await {
             let mut session = session.clone();
             match msg {
                 AggregatedMessage::Text(text) => {
-                    handle_json_request(&text, claims.id, &mut session, &repository).await
+                    handle_json_request(&text, 0, &mut session, &repository).await
                 }
                 AggregatedMessage::Ping(msg) => {
                     println!("Ping received");
@@ -38,12 +68,33 @@ pub async fn echo(
                     println!("Session Closed");
                     session.close(msg).await.unwrap()
                 }
-                _ => {}
+                _ => {
+                    println!("How did you get here")
+                }
             }
         }
     });
 
     Ok(res)
+}
+
+fn handle_hello_request(message: &str) -> Result<(), Box<dyn std::error::Error>> {
+    match serde_json::from_str::<WebSocketMessage>(message)?.data {
+        MessageData::Hello(h) => {
+            println!("{:?}", h);
+            Ok(())
+        }
+        MessageData::Channel(_) => Err(Box::from(
+            "Received create channel request but expected hello.",
+        )),
+        MessageData::Guild(_) => Err(Box::from(
+            "Received create guild request but expected hello.",
+        )),
+        MessageData::Message(_) => Err(Box::from(
+            "Received create message request but expected hello.",
+        )),
+        MessageData::Ack(_) => Err(Box::from("Received ack but expected hello.")),
+    }
 }
 
 async fn handle_json_request(
@@ -55,7 +106,8 @@ async fn handle_json_request(
     let message: WebSocketMessage =
         serde_json::from_str(message).expect("Unable to deserialize message");
 
-    let output = match message.data {
+    let output: Result<(), Box<dyn std::error::Error>> = match message.data {
+        MessageData::Hello(_) => Err(Box::from("You cannot send multiple hellos per session.")),
         MessageData::Channel(t) => Ok(println!("Channel: {:?}", t)),
         MessageData::Guild(t) => Ok(println!("Guild: {:?}", t)),
         MessageData::Message(m) => handle_message(&m, user_id, repository).await,

@@ -10,7 +10,7 @@ pub fn auth_endpoints() -> actix_web::Scope {
 }
 
 pub fn websocket_endpoints() -> actix_web::Scope {
-    actix_web::web::scope("/ws").service(websocket::echo)
+    actix_web::web::scope("").service(websocket::gateway)
 }
 
 pub fn guild_endpoints() -> actix_web::Scope {

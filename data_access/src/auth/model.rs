@@ -46,8 +46,6 @@ impl TryFrom<AuthUser> for AuthUserResponse {
             username: value.username,
             token: String::from(""),
             refresh_token: value.refresh_token.ok_or("Refresh token was not provided from the database")?,
-            created_date: value.created_date.ok_or("Created date was not provided by the database")?,
-            updated_date: value.updated_date.ok_or("Updated date was not provided by the database")?,
         })
     }
 }

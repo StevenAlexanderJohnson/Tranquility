@@ -1,4 +1,3 @@
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -15,6 +14,4 @@ pub struct AuthUserResponse {
     pub username: String,
     pub token: String,
     pub refresh_token: String,
-    pub created_date: DateTime<Utc>,
-    pub updated_date: DateTime<Utc>,
 }
