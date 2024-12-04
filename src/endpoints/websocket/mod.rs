@@ -4,7 +4,7 @@ use actix_web::{error::ErrorUnauthorized, get, rt, web, Error, HttpRequest, Http
 
 use actix_ws::{AggregatedMessage, CloseReason};
 use data_access::DatabaseConnection;
-use data_models::{AuthUserResponse, MessageData, WebSocketMessage};
+use data_models::{MessageData, WebSocketMessage};
 use message::handle_message;
 
 #[get("/{id}/{token}")]
@@ -48,7 +48,7 @@ pub async fn gateway(
             let mut session = session.clone();
             match msg {
                 AggregatedMessage::Text(text) => {
-                    handle_json_request(&text, 0, &user, &mut session, &repository).await
+                    handle_json_request(&text, user.id, &mut session, &repository).await
                 }
                 AggregatedMessage::Ping(msg) => {
                     println!("Ping received");
@@ -70,8 +70,8 @@ pub async fn gateway(
 
 async fn handle_json_request(
     message: &str,
+    // user_id: i32,
     user_id: i32,
-    _user: &AuthUserResponse,
     session: &mut actix_ws::Session,
     repository: &DatabaseConnection,
 ) {

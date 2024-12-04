@@ -32,8 +32,6 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::new("%r %s %{User-Agent}i"))
             .wrap(cors)
             .wrap_fn(|req, srv| {
-                println!("Incoming request to: {}", req.path());
-                println!("Headers: {:?}", req.headers());
                 srv.call(req)
             })
             .app_data(Data::new(data_access.clone()))
