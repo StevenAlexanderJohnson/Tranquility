@@ -4,6 +4,7 @@ mod guilds;
 mod members;
 mod messages;
 mod roles;
+mod attachments;
 
 use auth::auth_repository::AuthRepository;
 pub use auth::model::AuthUser;
@@ -22,6 +23,9 @@ use roles::{model::Intent, role_repository::RoleRepository};
 
 use messages::message_repository::MessageRepository;
 pub use messages::model::Message;
+
+use attachments::attachments_repository::AttachmentsRepository;
+pub use attachments::model::Attachment;
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
@@ -76,6 +80,7 @@ pub struct DatabaseConnection {
     member: Box<MemberRepository>,
     role: Box<RoleRepository>,
     message: Box<MessageRepository>,
+    attachment: Box<AttachmentsRepository>,
 }
 
 impl DatabaseConnection {
@@ -97,6 +102,7 @@ impl DatabaseConnection {
             member: Box::new(MemberRepository {}),
             role: Box::new(RoleRepository {}),
             message: Box::new(MessageRepository {}),
+            attachment: Box::new(AttachmentsRepository {})
         }
     }
 
@@ -464,6 +470,24 @@ impl DatabaseConnection {
                 tx.commit().await?;
                 Ok(x)
             }
+            Err(e) => {
+                tx.rollback().await?;
+                Err(e)
+            }
+        }
+    }
+
+    pub async fn create_attachment(
+        &self,
+        attachment: &Attachment,
+        user_id: i32,
+    ) -> Result<Option<Attachment>, Box<dyn std::error::Error>> {
+        let mut tx = self.pool.begin().await?;
+        match self.attachment.insert(attachment, user_id, &mut tx).await {
+            Ok(x) => {
+                tx.commit().await?;
+                Ok(x)
+            },
             Err(e) => {
                 tx.rollback().await?;
                 Err(e)

@@ -1,5 +1,6 @@
 mod auth_middleware;
 mod endpoints;
+mod file_handler;
 mod jwt_handler;
 mod password_manager;
 
@@ -12,6 +13,7 @@ use actix_web::{
 };
 use auth_middleware::Auth;
 use data_access::DatabaseConnection;
+use file_handler::LocalFileHandler;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -31,15 +33,15 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(Logger::new("%r %s %{User-Agent}i"))
             .wrap(cors)
-            .wrap_fn(|req, srv| {
-                srv.call(req)
-            })
+            .wrap_fn(|req, srv| srv.call(req))
             .app_data(Data::new(data_access.clone()))
+            .app_data(Data::new(LocalFileHandler::new()))
             .service(
                 scope("/api")
                     .wrap(Auth)
                     .service(endpoints::auth_endpoints())
-                    .service(endpoints::guild_endpoints()),
+                    .service(endpoints::guild_endpoints())
+                    .service(endpoints::attachment_endpoints()),
             )
             .service(scope("/ws").service(endpoints::websocket_endpoints()))
     })
