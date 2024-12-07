@@ -45,7 +45,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             .wrap_fn(|req, srv| srv.call(req))
             .app_data(Data::new(data_access.clone()))
-            .app_data(Data::new(LocalFileHandler::new()))
+            .app_data(Data::new(file_handler.clone()))
             .service(
                 scope("/api")
                     .wrap(Auth)
