@@ -53,9 +53,11 @@ pub async fn upload_attachments(
                 file_name: Some(file_name),
                 file_size: Some(form.file.size as i64),
                 file_path: Some(file_path.clone()),
-                mime_type: Some(
-                    format!("{}/{}", file_type.essence_str(), file_type.subtype()).into(),
-                ),
+                mime_type: Some(format!(
+                    "{}/{}",
+                    file_type.essence_str(),
+                    file_type.subtype()
+                )),
                 created_date: None,
             },
             claims.id,

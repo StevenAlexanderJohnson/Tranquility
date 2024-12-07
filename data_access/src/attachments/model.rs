@@ -12,12 +12,3 @@ pub struct Attachment {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_date: Option<chrono::DateTime<chrono::Utc>>,
 }
-
-pub struct AttachmentResponse {
-    pub id: i32,
-    pub name: String,
-    pub file_name: String,
-    pub file_path: String,
-    pub mime_type: String,
-    pub created_date: chrono::DateTime<chrono::Utc>
-}

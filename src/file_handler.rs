@@ -49,7 +49,7 @@ impl LocalFileHandler {
 
     pub fn delete_file(&self, file_name: &str) -> Result<(), Box<dyn std::error::Error>> {
         let mut file_path = PathBuf::from(&self.storage_folder);
-        file_path.push(&file_name);
+        file_path.push(file_name);
 
         std::fs::remove_file(file_path)?;
 
