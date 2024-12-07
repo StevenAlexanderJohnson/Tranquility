@@ -17,11 +17,6 @@ pub async fn upload_attachments(
     repository: web::Data<DatabaseConnection>,
     MultipartForm(form): MultipartForm<UploadForm>,
 ) -> HttpResponse {
-    println!(
-        "Uploaded {:?} with size: {}, mime-type: {:?}",
-        form.file.file_name, form.file.size, form.file.content_type
-    );
-
     let file_handler = file_handler.into_inner();
 
     let file_type = match &form.file.content_type {
@@ -53,11 +48,7 @@ pub async fn upload_attachments(
                 file_name: Some(file_name),
                 file_size: Some(form.file.size as i64),
                 file_path: Some(file_path.clone()),
-                mime_type: Some(format!(
-                    "{}/{}",
-                    file_type.essence_str(),
-                    file_type.subtype()
-                )),
+                mime_type: Some(file_type.essence_str().into()),
                 created_date: None,
             },
             claims.id,

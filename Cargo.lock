@@ -714,6 +714,7 @@ dependencies = [
  "futures-util",
  "hmac",
  "jwt",
+ "log",
  "sanitize-filename",
  "serde",
  "serde_json",

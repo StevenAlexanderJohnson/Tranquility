@@ -1,4 +1,7 @@
-use std::{path::PathBuf, time::UNIX_EPOCH};
+use std::{
+    path::{Path, PathBuf},
+    time::UNIX_EPOCH,
+};
 
 use actix_multipart::form::tempfile::TempFile;
 
@@ -12,6 +15,14 @@ impl LocalFileHandler {
         Self {
             storage_folder: std::env::var("STORAGE_FOLDER").expect("STORAGE_FOLDER is not set"),
         }
+    }
+
+    pub fn check_destination(&self) -> Result<(), Box<dyn std::error::Error>> {
+        if Path::new(&self.storage_folder).exists() {
+            return Ok(());
+        }
+        std::fs::create_dir(&self.storage_folder)?;
+        Ok(())
     }
 
     pub fn store_file(

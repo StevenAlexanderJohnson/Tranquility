@@ -25,8 +25,12 @@ impl AttachmentsRepository {
         .bind(&attachment.mime_type)
         .bind(user_id)
         .fetch_one(&mut **tx)
-        .await {
-            Ok(x) => Ok(Some(x)),
+        .await
+        {
+            Ok(x) => Ok(Some(Attachment {
+                file_path: None,
+                ..x
+            })),
             Err(sqlx::Error::RowNotFound) => Ok(None),
             Err(e) => Err(e.into()),
         }

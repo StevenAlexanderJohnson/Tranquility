@@ -16,6 +16,7 @@ hmac = "0.12"
 sha2 = "0.10"
 argon2 = "0.5"
 env_logger = "0.11.5"
+log = "0.4.22"
 
 data_access = {path = "./data_access"}
 data_models = {path = "./data_models"}
