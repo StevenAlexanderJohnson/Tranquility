@@ -54,7 +54,10 @@ pub async fn login(
                     response.token = jwt.clone();
                     HttpResponse::Ok().cookie(cookie).json(response)
                 })
-                .unwrap_or_else(|_| HttpResponse::InternalServerError().finish())
+                .unwrap_or_else(|e| {
+                    println!("{:?}", e);
+                    HttpResponse::InternalServerError().finish()
+                })
         }
         Ok(None) => HttpResponse::Unauthorized().finish(),
         Err(e) => {

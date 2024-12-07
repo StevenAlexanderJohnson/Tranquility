@@ -24,12 +24,30 @@ impl<'a> AuthRepository {
     pub async fn find(
         &self,
         auth_user: &AuthUser,
-        tx: &mut Transaction<'_, Postgres>
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Option<AuthUser>, Box<dyn std::error::Error>> {
         match sqlx::query_as::<_, AuthUser>(
-            "UPDATE auth SET refresh_token = md5(random()::text) WHERE username = $1 RETURNING id, username, password, email, refresh_token;"
+            "UPDATE auth SET refresh_token = md5(random()::text) WHERE username = $1 RETURNING id, username, password, email, refresh_token, websocket_token;"
         )
         .bind(&auth_user.username)
+        .fetch_one(&mut **tx).await {
+            Ok(user) => Ok(Some(user)),
+            Err(sqlx::Error::RowNotFound) => Ok(None),
+            Err(e) => Err(e.into())
+        }
+    }
+
+    pub async fn find_websocket(
+        &self,
+        user_id: i32,
+        websocket_token: &str,
+        tx: &mut Transaction<'_, Postgres>,
+    ) -> Result<Option<AuthUser>, Box<dyn std::error::Error>> {
+        match sqlx::query_as::<_, AuthUser>(
+            "UPDATE auth SET websocket_token = md5(random()::text) WHERE id = $1 AND websocket_token = $2 RETURNING id, username, refresh_token, websocket_token;"
+        )
+        .bind(user_id)
+        .bind(websocket_token)
         .fetch_one(&mut **tx).await {
             Ok(user) => Ok(Some(user)),
             Err(sqlx::Error::RowNotFound) => Ok(None),

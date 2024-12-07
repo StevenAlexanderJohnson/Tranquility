@@ -1,3 +1,4 @@
+mod attachment;
 mod auth;
 mod guild;
 mod websocket;
@@ -10,7 +11,11 @@ pub fn auth_endpoints() -> actix_web::Scope {
 }
 
 pub fn websocket_endpoints() -> actix_web::Scope {
-    actix_web::web::scope("/ws").service(websocket::echo)
+    actix_web::web::scope("").service(websocket::gateway)
+}
+
+pub fn attachment_endpoints() -> actix_web::Scope {
+    actix_web::web::scope("/attachment").service(attachment::upload_attachments)
 }
 
 pub fn guild_endpoints() -> actix_web::Scope {

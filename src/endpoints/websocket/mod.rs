@@ -1,22 +1,42 @@
 mod message;
 
-use actix_web::{get, rt, web, Error, HttpRequest, HttpResponse};
-use actix_ws::AggregatedMessage;
+use actix_web::{error::ErrorUnauthorized, get, rt, web, Error, HttpRequest, HttpResponse};
+
+use actix_ws::{AggregatedMessage, CloseReason};
 use data_access::DatabaseConnection;
 use data_models::{MessageData, WebSocketMessage};
 use message::handle_message;
 
-use crate::jwt_handler::Claims;
-
-#[get("/")]
-pub async fn echo(
+#[get("/{id}/{token}")]
+pub async fn gateway(
     req: HttpRequest,
     stream: web::Payload,
-    claims: web::ReqData<Claims>,
+    path: web::Path<(i32, String)>,
     repository: web::Data<DatabaseConnection>,
 ) -> Result<HttpResponse, Error> {
-    let (res, session, stream) = actix_ws::handle(&req, stream)?;
+    // Handle the handshake
+    let (res, session, stream) = match actix_ws::handle(&req, stream) {
+        Ok(res) => res,
+        Err(e) => {
+            return Err(e);
+        }
+    };
     println!("WebSocket connection initiated");
+
+    // Login with path variables
+    let user = match repository.websocket_login(path.0, &path.1).await {
+        Ok(user) => user,
+        Err(e) => {
+            println!("Error while logging in in websocket: {:?}", e);
+            let _ = session
+                .close(Some(CloseReason {
+                    code: actix_ws::CloseCode::Invalid,
+                    description: Some(String::from("Unable to authenticate user.")),
+                }))
+                .await;
+            return Err(ErrorUnauthorized("Invalid login"));
+        }
+    };
 
     let mut stream = stream
         .aggregate_continuations()
@@ -28,7 +48,7 @@ pub async fn echo(
             let mut session = session.clone();
             match msg {
                 AggregatedMessage::Text(text) => {
-                    handle_json_request(&text, claims.id, &mut session, &repository).await
+                    handle_json_request(&text, user.id, &mut session, &repository).await
                 }
                 AggregatedMessage::Ping(msg) => {
                     println!("Ping received");
@@ -38,7 +58,9 @@ pub async fn echo(
                     println!("Session Closed");
                     session.close(msg).await.unwrap()
                 }
-                _ => {}
+                _ => {
+                    println!("How did you get here")
+                }
             }
         }
     });
@@ -48,6 +70,7 @@ pub async fn echo(
 
 async fn handle_json_request(
     message: &str,
+    // user_id: i32,
     user_id: i32,
     session: &mut actix_ws::Session,
     repository: &DatabaseConnection,
@@ -55,7 +78,8 @@ async fn handle_json_request(
     let message: WebSocketMessage =
         serde_json::from_str(message).expect("Unable to deserialize message");
 
-    let output = match message.data {
+    let output: Result<(), Box<dyn std::error::Error>> = match message.data {
+        MessageData::Hello(_) => Err(Box::from("You cannot send multiple hellos per session.")),
         MessageData::Channel(t) => Ok(println!("Channel: {:?}", t)),
         MessageData::Guild(t) => Ok(println!("Guild: {:?}", t)),
         MessageData::Message(m) => handle_message(&m, user_id, repository).await,
@@ -73,8 +97,6 @@ async fn handle_json_request(
             .text(serde_json::to_string(&response).expect("Unable to stringify message"))
             .await
             .expect("Unable to send message to client");
-
-        return;
     } else {
         let response = WebSocketMessage {
             data: MessageData::Ack(String::from("ack")),
