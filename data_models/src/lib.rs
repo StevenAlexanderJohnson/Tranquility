@@ -18,6 +18,3 @@ pub use roles::CreateRoleRequest;
 
 mod websocket;
 pub use websocket::{WebSocketMessage, MessageData};
-
-mod attachment;
-pub use attachment::CreateAttachmentResponse;

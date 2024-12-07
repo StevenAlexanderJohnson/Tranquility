@@ -13,3 +13,9 @@ pub struct Attachment {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_date: Option<chrono::DateTime<chrono::Utc>>,
 }
+
+#[derive(Serialize, Deserialize, FromRow, Default, Debug)]
+pub struct AttachmentMapping {
+    pub post_id: i32,
+    pub attachment_id: i32
+}

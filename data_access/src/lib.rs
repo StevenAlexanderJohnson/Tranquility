@@ -1,10 +1,10 @@
+mod attachments;
 mod auth;
 mod channel;
 mod guilds;
 mod members;
 mod messages;
 mod roles;
-mod attachments;
 
 use auth::auth_repository::AuthRepository;
 pub use auth::model::AuthUser;
@@ -25,7 +25,7 @@ use messages::message_repository::MessageRepository;
 pub use messages::model::Message;
 
 use attachments::attachments_repository::AttachmentsRepository;
-pub use attachments::model::Attachment;
+pub use attachments::model::{Attachment, AttachmentMapping};
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
@@ -102,7 +102,7 @@ impl DatabaseConnection {
             member: Box::new(MemberRepository {}),
             role: Box::new(RoleRepository {}),
             message: Box::new(MessageRepository {}),
-            attachment: Box::new(AttachmentsRepository {})
+            attachment: Box::new(AttachmentsRepository {}),
         }
     }
 
@@ -465,16 +465,47 @@ impl DatabaseConnection {
         user_id: i32,
     ) -> Result<Message, Box<dyn std::error::Error>> {
         let mut tx = self.pool.begin().await?;
-        match self.message.insert(message, user_id, &mut tx).await {
-            Ok(x) => {
-                tx.commit().await?;
-                Ok(x)
-            }
+
+        let output = match self.message.insert(message, user_id, &mut tx).await {
+            Ok(x) => x,
             Err(e) => {
                 tx.rollback().await?;
-                Err(e)
+                return Err(e);
             }
+        };
+
+        let post_id = match output.id {
+            Some(x) => x,
+            None => {
+                tx.rollback().await?;
+                return Err(Box::from(
+                    "Inserting message did not return a post id.".to_string(),
+                ));
+            }
+        };
+
+        for &attachment_id in &message.attachments {
+            match self
+                .attachment
+                .create_message_attachment_mapping(
+                    &AttachmentMapping {
+                        post_id: post_id,
+                        attachment_id: attachment_id,
+                    },
+                    &mut tx,
+                )
+                .await
+            {
+                Ok(()) => {}
+                Err(e) => {
+                    tx.rollback().await?;
+                    return Err(e);
+                }
+            };
         }
+
+        tx.commit().await?;
+        Ok(output)
     }
 
     pub async fn create_attachment(
@@ -487,7 +518,7 @@ impl DatabaseConnection {
             Ok(x) => {
                 tx.commit().await?;
                 Ok(x)
-            },
+            }
             Err(e) => {
                 tx.rollback().await?;
                 Err(e)

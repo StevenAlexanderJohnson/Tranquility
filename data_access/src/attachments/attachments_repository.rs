@@ -1,6 +1,6 @@
 use sqlx::{Postgres, Transaction};
 
-use crate::Attachment;
+use crate::{Attachment, AttachmentMapping};
 
 #[derive(Clone)]
 pub struct AttachmentsRepository {}
@@ -32,6 +32,27 @@ impl AttachmentsRepository {
                 ..x
             })),
             Err(sqlx::Error::RowNotFound) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    pub async fn create_message_attachment_mapping(
+        &self,
+        mapping: &AttachmentMapping,
+        tx: &mut Transaction<'_, Postgres>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        match sqlx::query(
+            r#"
+            INSERT INTO attachment_mapping (post_id, attachment_id)
+            VALUES ($1, $2);
+            "#,
+        )
+        .bind(&mapping.post_id)
+        .bind(&mapping.attachment_id)
+        .execute(&mut **tx)
+        .await
+        {
+            Ok(_) => Ok(()),
             Err(e) => Err(e.into()),
         }
     }
