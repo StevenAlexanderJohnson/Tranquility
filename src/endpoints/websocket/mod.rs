@@ -4,7 +4,8 @@ use actix_web::{error::ErrorUnauthorized, get, rt, web, Error, HttpRequest, Http
 
 use actix_ws::{AggregatedMessage, CloseReason};
 use data_access::DatabaseConnection;
-use data_models::{MessageData, WebSocketMessage};
+use data_models::{WebSocketMessage, WebsocketMessageData, WebsocketResponseData};
+use log::error;
 use message::handle_message;
 
 #[get("/{id}/{token}")]
@@ -70,7 +71,6 @@ pub async fn gateway(
 
 async fn handle_json_request(
     message: &str,
-    // user_id: i32,
     user_id: i32,
     session: &mut actix_ws::Session,
     repository: &DatabaseConnection,
@@ -78,33 +78,34 @@ async fn handle_json_request(
     let message: WebSocketMessage =
         serde_json::from_str(message).expect("Unable to deserialize message");
 
-    let output: Result<(), Box<dyn std::error::Error>> = match message.data {
-        MessageData::Hello(_) => Err(Box::from("You cannot send multiple hellos per session.")),
-        MessageData::Channel(t) => Ok(println!("Channel: {:?}", t)),
-        MessageData::Guild(t) => Ok(println!("Guild: {:?}", t)),
-        MessageData::Message(m) => handle_message(&m, user_id, repository).await,
-        MessageData::Ack(s) => Ok(println!("Ack {}", s)),
+    let output: Result<WebsocketResponseData, Box<dyn std::error::Error>> = match message.data {
+        WebsocketMessageData::Channel(_) => Ok(WebsocketResponseData::Ack("Ack".to_string())),
+        WebsocketMessageData::Guild(_) => Ok(WebsocketResponseData::Ack("Ack".to_string())),
+        WebsocketMessageData::Message(m) => handle_message(&m, user_id, repository)
+            .await
+            .map(WebsocketResponseData::Message),
+        WebsocketMessageData::Ack(_) => Ok(WebsocketResponseData::Ack("Ack".to_string())),
     };
 
-    if output.is_err() {
-        let response = WebSocketMessage {
-            data: MessageData::Ack(String::from(
-                "An error occurred while processing your request",
-            )),
-        };
+    match output {
+        Ok(x) => {
+            session
+                .text(serde_json::to_string(&x).expect("Unable to stringify message"))
+                .await
+                .expect("unable to send message to client");
+        }
+        Err(e) => {
+            error!("{:?}", e);
+            let response = WebSocketMessage {
+                data: WebsocketMessageData::Ack(String::from(
+                    "An error occurred while processing your request",
+                )),
+            };
 
-        session
-            .text(serde_json::to_string(&response).expect("Unable to stringify message"))
-            .await
-            .expect("Unable to send message to client");
-    } else {
-        let response = WebSocketMessage {
-            data: MessageData::Ack(String::from("ack")),
-        };
-
-        session
-            .text(serde_json::to_string(&response).expect("Unable to stringify message"))
-            .await
-            .expect("unable to send message to client");
+            session
+                .text(serde_json::to_string(&response).expect("Unable to stringify message"))
+                .await
+                .expect("Unable to send message to client");
+        }
     }
 }

@@ -4,6 +4,8 @@ mod file_handler;
 mod jwt_handler;
 mod password_manager;
 
+use std::io::ErrorKind;
+
 use actix_cors::Cors;
 use actix_web::{
     dev::Service,
@@ -14,14 +16,22 @@ use actix_web::{
 use auth_middleware::Auth;
 use data_access::DatabaseConnection;
 use file_handler::LocalFileHandler;
+use log::{self, info};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    println!("Connecting to the database...");
-    let data_access = DatabaseConnection::new(data_access::create_connection_pool(32).await);
-    println!("Connected to the database\n");
-
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+
+    info!("Connecting to the database...");
+    let data_access = DatabaseConnection::new(data_access::create_connection_pool(32).await);
+    info!("Connected to the database\n");
+
+    info!("Checking upload destination...");
+    let file_handler = LocalFileHandler::new();
+    file_handler
+        .check_destination()
+        .map_err(|e| std::io::Error::new(ErrorKind::InvalidInput, e.to_string()))?;
+    info!("File destination is valid and ready\n");
 
     HttpServer::new(move || {
         let cors = Cors::default()
@@ -35,7 +45,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             .wrap_fn(|req, srv| srv.call(req))
             .app_data(Data::new(data_access.clone()))
-            .app_data(Data::new(LocalFileHandler::new()))
+            .app_data(Data::new(file_handler.clone()))
             .service(
                 scope("/api")
                     .wrap(Auth)

@@ -1,5 +1,5 @@
 mod auth;
-pub use {auth::CreateAuthUserRequest, auth::AuthUserResponse};
+pub use {auth::AuthUserResponse, auth::CreateAuthUserRequest};
 
 mod channel;
 pub use channel::CreateChannelRequest;
@@ -11,13 +11,13 @@ mod members;
 pub use members::CreateMemberRequest;
 
 mod messages;
-pub use messages::CreateMessageRequest;
+pub use messages::{CreateMessageRequest, MessageResponse};
 
 mod roles;
 pub use roles::CreateRoleRequest;
 
 mod websocket;
-pub use websocket::{WebSocketMessage, MessageData};
+pub use websocket::{WebSocketMessage, WebsocketMessageData, WebsocketResponseData};
 
 mod attachment;
-pub use attachment::CreateAttachmentResponse;
+pub use attachment::AttachmentResponse;

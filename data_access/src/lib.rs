@@ -1,10 +1,10 @@
+mod attachments;
 mod auth;
 mod channel;
 mod guilds;
 mod members;
 mod messages;
 mod roles;
-mod attachments;
 
 use auth::auth_repository::AuthRepository;
 pub use auth::model::AuthUser;
@@ -25,13 +25,13 @@ use messages::message_repository::MessageRepository;
 pub use messages::model::Message;
 
 use attachments::attachments_repository::AttachmentsRepository;
-pub use attachments::model::Attachment;
+pub use attachments::model::{Attachment, AttachmentMapping};
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
 use data_models::{
-    AuthUserResponse, CreateAuthUserRequest, CreateChannelRequest, CreateGuildRequest,
-    CreateMemberRequest, CreateMessageRequest, CreateRoleRequest,
+    AttachmentResponse, AuthUserResponse, CreateAuthUserRequest, CreateChannelRequest,
+    CreateGuildRequest, CreateMemberRequest, CreateMessageRequest, CreateRoleRequest, MessageResponse,
 };
 
 /// Creates a connection pool to the database
@@ -102,7 +102,7 @@ impl DatabaseConnection {
             member: Box::new(MemberRepository {}),
             role: Box::new(RoleRepository {}),
             message: Box::new(MessageRepository {}),
-            attachment: Box::new(AttachmentsRepository {})
+            attachment: Box::new(AttachmentsRepository {}),
         }
     }
 
@@ -463,12 +463,71 @@ impl DatabaseConnection {
         &self,
         message: &CreateMessageRequest,
         user_id: i32,
-    ) -> Result<Message, Box<dyn std::error::Error>> {
+    ) -> Result<MessageResponse, Box<dyn std::error::Error>> {
         let mut tx = self.pool.begin().await?;
-        match self.message.insert(message, user_id, &mut tx).await {
-            Ok(x) => {
+
+        let mut output = match self.message.insert(message, user_id, &mut tx).await {
+            Ok(x) => MessageResponse::try_from(x)?,
+            Err(e) => {
+                tx.rollback().await?;
+                return Err(e);
+            }
+        };
+
+        for &attachment_id in &message.attachments {
+            match self
+                .attachment
+                .create_message_attachment_mapping(
+                    &AttachmentMapping {
+                        post_id: output.id,
+                        attachment_id: attachment_id,
+                    },
+                    &mut tx,
+                )
+                .await
+            {
+                Ok(()) => {}
+                Err(e) => {
+                    tx.rollback().await?;
+                    return Err(e);
+                }
+            };
+        }
+
+        if message.attachments.len() > 0 {
+            // output.attachments = self.get_post_attachment(output.id).await.iter();
+            let attachments = self
+                .attachment
+                .get_message_attachments(output.id, &mut tx)
+                .await?
+                .iter()
+                .map(|x| {
+                    x.file_name
+                        .to_owned()
+                        .ok_or("Unable to get file name when submitting message with attachments.")
+                })
+                .collect::<Result<Vec<String>, _>>()?;
+            output.attachments = attachments;
+        }
+
+        tx.commit().await?;
+        Ok(output)
+    }
+
+    pub async fn create_attachment(
+        &self,
+        attachment: &Attachment,
+        user_id: i32,
+    ) -> Result<Option<AttachmentResponse>, Box<dyn std::error::Error>> {
+        let mut tx = self.pool.begin().await?;
+        match self.attachment.insert(attachment, user_id, &mut tx).await {
+            Ok(Some(x)) => {
                 tx.commit().await?;
-                Ok(x)
+                Ok(Some(AttachmentResponse::try_from(&x)?))
+            }
+            Ok(None) => {
+                tx.rollback().await?;
+                Err("An error occurred while trying to create attachment in the database".into())
             }
             Err(e) => {
                 tx.rollback().await?;
@@ -477,21 +536,19 @@ impl DatabaseConnection {
         }
     }
 
-    pub async fn create_attachment(
+    pub async fn get_post_attachment(
         &self,
-        attachment: &Attachment,
-        user_id: i32,
-    ) -> Result<Option<Attachment>, Box<dyn std::error::Error>> {
+        post_id: i32,
+    ) -> Result<Vec<AttachmentResponse>, Box<dyn std::error::Error>> {
         let mut tx = self.pool.begin().await?;
-        match self.attachment.insert(attachment, user_id, &mut tx).await {
-            Ok(x) => {
-                tx.commit().await?;
-                Ok(x)
-            },
-            Err(e) => {
-                tx.rollback().await?;
-                Err(e)
-            }
-        }
+        let output = self
+            .attachment
+            .get_message_attachments(post_id, &mut tx)
+            .await?
+            .iter()
+            .map(|x| AttachmentResponse::try_from(x))
+            .collect::<Result<Vec<AttachmentResponse>, _>>();
+        println!("GET POST: {} {:?}", post_id, output);
+        output
     }
 }

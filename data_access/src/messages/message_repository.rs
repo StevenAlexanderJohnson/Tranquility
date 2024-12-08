@@ -14,7 +14,8 @@ impl MessageRepository {
         creator_id: i32,
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Message, Box<dyn std::error::Error>> {
-        sqlx::query_as::<_, Message>(r"
+        sqlx::query_as::<_, Message>(
+            r"
         INSERT INTO message (author_id, channel_id, content)
         SELECT $1, $2, $3
         WHERE EXISTS (
@@ -23,7 +24,8 @@ impl MessageRepository {
             where m.user_id = $1 and c.id = $2
         )
         RETURNING id, channel_id, author_id, content, created_date, updated_date;
-        ")
+        ",
+        )
         .bind(creator_id)
         .bind(message.channel_id)
         .bind(message.content.clone())
