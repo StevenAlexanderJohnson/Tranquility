@@ -22,7 +22,7 @@ pub use roles::model::{Role, RoleResult};
 use roles::{model::Intent, role_repository::RoleRepository};
 
 use messages::message_repository::MessageRepository;
-pub use messages::model::{Message, MessageResponse};
+pub use messages::model::Message;
 
 use attachments::attachments_repository::AttachmentsRepository;
 pub use attachments::model::{Attachment, AttachmentMapping};
@@ -31,7 +31,7 @@ use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
 use data_models::{
     AttachmentResponse, AuthUserResponse, CreateAuthUserRequest, CreateChannelRequest,
-    CreateGuildRequest, CreateMemberRequest, CreateMessageRequest, CreateRoleRequest,
+    CreateGuildRequest, CreateMemberRequest, CreateMessageRequest, CreateRoleRequest, MessageResponse,
 };
 
 /// Creates a connection pool to the database

@@ -1,5 +1,5 @@
-use data_access::{DatabaseConnection, MessageResponse};
-use data_models::CreateMessageRequest;
+use data_access::DatabaseConnection;
+use data_models::{CreateMessageRequest, MessageResponse};
 
 pub async fn handle_message(
     message: &CreateMessageRequest,

@@ -74,10 +74,7 @@ impl AttachmentsRepository {
         .fetch_all(&mut **tx)
         .await
         {
-            Ok(attachments) => {
-                println!("ATT {:?}", attachments);
-                Ok(attachments)
-            }
+            Ok(attachments) => Ok(attachments),
             Err(sqlx::Error::RowNotFound) => Ok(vec![]),
             Err(e) => Err(e.into()),
         }

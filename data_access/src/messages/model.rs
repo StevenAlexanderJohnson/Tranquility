@@ -1,3 +1,4 @@
+use data_models::MessageResponse;
 use serde::{Deserialize, Serialize};
 use sqlx::{
     types::chrono::{DateTime, Utc},
@@ -13,16 +14,6 @@ pub struct Message {
     pub content: Option<String>,
     pub created_date: Option<DateTime<Utc>>,
     pub updated_date: Option<DateTime<Utc>>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct MessageResponse {
-    pub id: i32,
-    pub author_id: i32,
-    pub content: String,
-    pub attachments: Vec<String>,
-    pub created_date: DateTime<Utc>,
-    pub updated_date: DateTime<Utc>,
 }
 
 impl TryFrom<Message> for MessageResponse {
