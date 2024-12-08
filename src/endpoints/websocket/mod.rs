@@ -70,7 +70,6 @@ pub async fn gateway(
 
 async fn handle_json_request(
     message: &str,
-    // user_id: i32,
     user_id: i32,
     session: &mut actix_ws::Session,
     repository: &DatabaseConnection,
@@ -79,10 +78,12 @@ async fn handle_json_request(
         serde_json::from_str(message).expect("Unable to deserialize message");
 
     let output: Result<(), Box<dyn std::error::Error>> = match message.data {
-        MessageData::Hello(_) => Err(Box::from("You cannot send multiple hellos per session.")),
         MessageData::Channel(t) => Ok(println!("Channel: {:?}", t)),
         MessageData::Guild(t) => Ok(println!("Guild: {:?}", t)),
-        MessageData::Message(m) => handle_message(&m, user_id, repository).await,
+        MessageData::Message(m) => Ok(println!(
+            "{:?}",
+            handle_message(&m, user_id, repository).await
+        )),
         MessageData::Ack(s) => Ok(println!("Ack {}", s)),
     };
 

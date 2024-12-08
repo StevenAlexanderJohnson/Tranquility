@@ -22,7 +22,7 @@ pub use roles::model::{Role, RoleResult};
 use roles::{model::Intent, role_repository::RoleRepository};
 
 use messages::message_repository::MessageRepository;
-pub use messages::model::Message;
+pub use messages::model::{Message, MessageResponse};
 
 use attachments::attachments_repository::AttachmentsRepository;
 pub use attachments::model::{Attachment, AttachmentMapping};
@@ -30,8 +30,8 @@ pub use attachments::model::{Attachment, AttachmentMapping};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
 use data_models::{
-    AuthUserResponse, CreateAuthUserRequest, CreateChannelRequest, CreateGuildRequest,
-    CreateMemberRequest, CreateMessageRequest, CreateRoleRequest,
+    AttachmentResponse, AuthUserResponse, CreateAuthUserRequest, CreateChannelRequest,
+    CreateGuildRequest, CreateMemberRequest, CreateMessageRequest, CreateRoleRequest,
 };
 
 /// Creates a connection pool to the database
@@ -463,24 +463,14 @@ impl DatabaseConnection {
         &self,
         message: &CreateMessageRequest,
         user_id: i32,
-    ) -> Result<Message, Box<dyn std::error::Error>> {
+    ) -> Result<MessageResponse, Box<dyn std::error::Error>> {
         let mut tx = self.pool.begin().await?;
 
-        let output = match self.message.insert(message, user_id, &mut tx).await {
-            Ok(x) => x,
+        let mut output = match self.message.insert(message, user_id, &mut tx).await {
+            Ok(x) => MessageResponse::try_from(x)?,
             Err(e) => {
                 tx.rollback().await?;
                 return Err(e);
-            }
-        };
-
-        let post_id = match output.id {
-            Some(x) => x,
-            None => {
-                tx.rollback().await?;
-                return Err(Box::from(
-                    "Inserting message did not return a post id.".to_string(),
-                ));
             }
         };
 
@@ -489,7 +479,7 @@ impl DatabaseConnection {
                 .attachment
                 .create_message_attachment_mapping(
                     &AttachmentMapping {
-                        post_id: post_id,
+                        post_id: output.id,
                         attachment_id: attachment_id,
                     },
                     &mut tx,
@@ -504,6 +494,22 @@ impl DatabaseConnection {
             };
         }
 
+        if message.attachments.len() > 0 {
+            // output.attachments = self.get_post_attachment(output.id).await.iter();
+            let attachments = self
+                .attachment
+                .get_message_attachments(output.id, &mut tx)
+                .await?
+                .iter()
+                .map(|x| {
+                    x.file_name
+                        .to_owned()
+                        .ok_or("Unable to get file name when submitting message with attachments.")
+                })
+                .collect::<Result<Vec<String>, _>>()?;
+            output.attachments = attachments;
+        }
+
         tx.commit().await?;
         Ok(output)
     }
@@ -512,17 +518,37 @@ impl DatabaseConnection {
         &self,
         attachment: &Attachment,
         user_id: i32,
-    ) -> Result<Option<Attachment>, Box<dyn std::error::Error>> {
+    ) -> Result<Option<AttachmentResponse>, Box<dyn std::error::Error>> {
         let mut tx = self.pool.begin().await?;
         match self.attachment.insert(attachment, user_id, &mut tx).await {
-            Ok(x) => {
+            Ok(Some(x)) => {
                 tx.commit().await?;
-                Ok(x)
+                Ok(Some(AttachmentResponse::try_from(&x)?))
+            }
+            Ok(None) => {
+                tx.rollback().await?;
+                Err("An error occurred while trying to create attachment in the database".into())
             }
             Err(e) => {
                 tx.rollback().await?;
                 Err(e)
             }
         }
+    }
+
+    pub async fn get_post_attachment(
+        &self,
+        post_id: i32,
+    ) -> Result<Vec<AttachmentResponse>, Box<dyn std::error::Error>> {
+        let mut tx = self.pool.begin().await?;
+        let output = self
+            .attachment
+            .get_message_attachments(post_id, &mut tx)
+            .await?
+            .iter()
+            .map(|x| AttachmentResponse::try_from(x))
+            .collect::<Result<Vec<AttachmentResponse>, _>>();
+        println!("GET POST: {} {:?}", post_id, output);
+        output
     }
 }

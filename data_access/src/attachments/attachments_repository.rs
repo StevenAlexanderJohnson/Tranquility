@@ -56,4 +56,38 @@ impl AttachmentsRepository {
             Err(e) => Err(e.into()),
         }
     }
+
+    pub async fn get_message_attachments(
+        &self,
+        post_id: i32,
+        tx: &mut Transaction<'_, Postgres>,
+    ) -> Result<Vec<Attachment>, Box<dyn std::error::Error>> {
+        let mapping_count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) from attachment_mapping where post_id = $1")
+                .bind(post_id)
+                .fetch_one(&mut **tx)
+                .await?;
+
+        println!("{} Number of attaachments", mapping_count);
+
+        match sqlx::query_as::<_, Attachment>(
+            r#"
+            SELECT a.id, a.file_name, a.file_path, a.file_size, a.mime_type, a.created_date
+            FROM attachment a
+            JOIN attachment_mapping m on m.attachment_id = a.id
+            WHERE m.post_id = $1;
+            "#,
+        )
+        .bind(post_id)
+        .fetch_all(&mut **tx)
+        .await
+        {
+            Ok(attachments) => {
+                println!("ATT {:?}", attachments);
+                Ok(attachments)
+            }
+            Err(sqlx::Error::RowNotFound) => Ok(vec![]),
+            Err(e) => Err(e.into()),
+        }
+    }
 }
