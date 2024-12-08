@@ -62,14 +62,6 @@ impl AttachmentsRepository {
         post_id: i32,
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Vec<Attachment>, Box<dyn std::error::Error>> {
-        let mapping_count: i64 =
-            sqlx::query_scalar("SELECT COUNT(*) from attachment_mapping where post_id = $1")
-                .bind(post_id)
-                .fetch_one(&mut **tx)
-                .await?;
-
-        println!("{} Number of attaachments", mapping_count);
-
         match sqlx::query_as::<_, Attachment>(
             r#"
             SELECT a.id, a.file_name, a.file_path, a.file_size, a.mime_type, a.created_date
