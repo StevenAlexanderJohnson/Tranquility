@@ -4,7 +4,7 @@ use actix_web::{error::ErrorUnauthorized, get, rt, web, Error, HttpRequest, Http
 
 use actix_ws::{AggregatedMessage, CloseReason};
 use data_access::DatabaseConnection;
-use data_models::{MessageData, WebSocketMessage};
+use data_models::{WebsocketMessageData, WebSocketMessage};
 use message::handle_message;
 
 #[get("/{id}/{token}")]
@@ -78,18 +78,18 @@ async fn handle_json_request(
         serde_json::from_str(message).expect("Unable to deserialize message");
 
     let output: Result<(), Box<dyn std::error::Error>> = match message.data {
-        MessageData::Channel(t) => Ok(println!("Channel: {:?}", t)),
-        MessageData::Guild(t) => Ok(println!("Guild: {:?}", t)),
-        MessageData::Message(m) => Ok(println!(
+        WebsocketMessageData::Channel(t) => Ok(println!("Channel: {:?}", t)),
+        WebsocketMessageData::Guild(t) => Ok(println!("Guild: {:?}", t)),
+        WebsocketMessageData::Message(m) => Ok(println!(
             "{:?}",
             handle_message(&m, user_id, repository).await
         )),
-        MessageData::Ack(s) => Ok(println!("Ack {}", s)),
+        WebsocketMessageData::Ack(s) => Ok(println!("Ack {}", s)),
     };
 
     if output.is_err() {
         let response = WebSocketMessage {
-            data: MessageData::Ack(String::from(
+            data: WebsocketMessageData::Ack(String::from(
                 "An error occurred while processing your request",
             )),
         };
@@ -100,7 +100,7 @@ async fn handle_json_request(
             .expect("Unable to send message to client");
     } else {
         let response = WebSocketMessage {
-            data: MessageData::Ack(String::from("ack")),
+            data: WebsocketMessageData::Ack(String::from("ack")),
         };
 
         session

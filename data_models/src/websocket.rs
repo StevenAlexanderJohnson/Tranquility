@@ -4,7 +4,7 @@ use crate::{CreateChannelRequest, CreateGuildRequest, CreateMessageRequest};
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(untagged)]
-pub enum MessageData {
+pub enum WebsocketMessageData {
     Channel(CreateChannelRequest),
     Guild(CreateGuildRequest),
     Message(CreateMessageRequest),
@@ -14,5 +14,5 @@ pub enum MessageData {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct WebSocketMessage {
-    pub data: MessageData,
+    pub data: WebsocketMessageData,
 }

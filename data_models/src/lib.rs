@@ -17,7 +17,7 @@ mod roles;
 pub use roles::CreateRoleRequest;
 
 mod websocket;
-pub use websocket::{WebSocketMessage, MessageData};
+pub use websocket::{WebSocketMessage, WebsocketMessageData};
 
 mod attachment;
 pub use attachment::AttachmentResponse;
