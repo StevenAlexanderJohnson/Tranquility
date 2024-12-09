@@ -2,7 +2,7 @@ mod auth;
 pub use {auth::AuthUserResponse, auth::CreateAuthUserRequest, auth::RefreshTokenRequest};
 
 mod channel;
-pub use channel::CreateChannelRequest;
+pub use channel::{CreateChannelRequest, CreateChannelResponse};
 
 mod guilds;
 pub use guilds::CreateGuildRequest;
