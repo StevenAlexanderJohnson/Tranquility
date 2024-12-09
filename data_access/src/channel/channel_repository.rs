@@ -11,6 +11,7 @@ impl ChannelRepository {
     pub async fn insert(
         &self,
         channel: &CreateChannelRequest,
+        guild_id: i32,
         user_id: i32,
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Option<Channel>, Box<dyn std::error::Error>> {
@@ -21,7 +22,7 @@ impl ChannelRepository {
             "#,
         )
         .bind(&channel.name)
-        .bind(&channel.guild_id)
+        .bind(guild_id)
         .bind(&user_id)
         .fetch_one(&mut **tx)
         .await
@@ -69,8 +70,8 @@ impl ChannelRepository {
             WHERE c.id = $1 AND m.user_id = $2 AND c.guild_id = $3"
         )
         .bind(channel_id)
-        .bind(guild_id)
         .bind(user_id)
+        .bind(guild_id)
         .fetch_one(pool)
         .await
         {

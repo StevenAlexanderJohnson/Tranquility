@@ -391,18 +391,20 @@ impl DatabaseConnection {
         guild_id: i32,
         user_id: i32,
     ) -> Result<Option<Channel>, Box<dyn std::error::Error>> {
-        self.channel
+        let output = self.channel
             .find_channel(channel_id, guild_id, user_id, &self.pool)
-            .await
+            .await;
+        output
     }
 
     pub async fn create_guild_channel(
         &self,
         channel: &CreateChannelRequest,
+        guild_id: i32,
         user_id: i32,
     ) -> Result<Option<Channel>, Box<dyn std::error::Error>> {
         let mut tx = self.pool.begin().await?;
-        match self.channel.insert(channel, user_id, &mut tx).await {
+        match self.channel.insert(channel, guild_id, user_id, &mut tx).await {
             Ok(x) => {
                 tx.commit().await?;
                 Ok(x)
