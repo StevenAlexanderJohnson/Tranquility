@@ -1,9 +1,8 @@
 use std::fmt;
 
+use data_models::CreateGuildResponse;
 use serde::{Deserialize, Serialize};
 use sqlx::{types::chrono, FromRow};
-
-use crate::Channel;
 
 #[derive(Serialize, Deserialize, FromRow, Default, Debug)]
 #[sqlx(default)]
@@ -19,17 +18,6 @@ pub struct Guild {
     pub updated_date: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct GuildResponse {
-    pub id: i32,
-    pub name: String,
-    pub description: String,
-    pub owner_id: i32,
-    pub channels: Vec<Channel>,
-    pub created_date: chrono::DateTime<chrono::Utc>,
-    pub updated_date: chrono::DateTime<chrono::Utc>,
-}
-
 #[derive(Debug, Clone)]
 pub struct FromGuildError(String);
 impl fmt::Display for FromGuildError {
@@ -41,32 +29,31 @@ impl fmt::Display for FromGuildError {
         )
     }
 }
-impl std::error::Error for FromGuildError {}
 
-impl TryFrom<Guild> for GuildResponse {
-    type Error = FromGuildError;
+impl TryFrom<Guild> for CreateGuildResponse {
+    type Error = Box<dyn std::error::Error>;
 
     fn try_from(value: Guild) -> Result<Self, Self::Error> {
         Ok(Self {
-            id: value.id.ok_or(FromGuildError(
-                "ID was not provided while casting Guild to GuildResponse".into(),
-            ))?,
-            name: value.name.ok_or(FromGuildError(
-                "Guild name was not provided while casting Guild to GuildResponse".into(),
-            ))?,
-            description: value.description.ok_or(FromGuildError(
-                "Description was not provided while casting Guild to GuildResponse".into(),
-            ))?,
-            owner_id: value.owner_id.ok_or(FromGuildError(
-                "Owner ID was not provided while casting Guild to GuildResponse".into(),
-            ))?,
+            id: value
+                .id
+                .ok_or("ID was not provided while casting Guild to GuildResponse")?,
+            name: value
+                .name
+                .ok_or("Guild name was not provided while casting Guild to GuildResponse")?,
+            description: value
+                .description
+                .ok_or("Description was not provided while casting Guild to GuildResponse")?,
+            owner_id: value
+                .owner_id
+                .ok_or("Owner ID was not provided while casting Guild to GuildResponse")?,
             channels: vec![],
-            created_date: value.created_date.ok_or(FromGuildError(
-                "Created Date was not provided while casting Guild to GuildResponse".into(),
-            ))?,
-            updated_date: value.updated_date.ok_or(FromGuildError(
-                "Updated Date was not provided while casting Guild to GuildResponse".into(),
-            ))?,
+            created_date: value
+                .created_date
+                .ok_or("Created Date was not provided while casting Guild to GuildResponse")?,
+            updated_date: value
+                .updated_date
+                .ok_or("Updated Date was not provided while casting Guild to GuildResponse")?,
         })
     }
 }

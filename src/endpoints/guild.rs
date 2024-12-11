@@ -78,17 +78,7 @@ pub async fn get_guild_channels(
 ) -> HttpResponse {
     let channels: Result<Option<Vec<CreateChannelResponse>>, _> = repository
         .find_guild_channels(path.into_inner(), claims.id)
-        .await
-        .and_then(|option| {
-            option
-                .map(|channels| {
-                    channels
-                        .into_iter()
-                        .map(CreateChannelResponse::try_from)
-                        .collect()
-                })
-                .transpose()
-        });
+        .await;
 
     match channels {
         Ok(Some(channels)) => HttpResponse::Ok().json(channels),
@@ -110,11 +100,7 @@ pub async fn create_guild_channel(
     match repository
         .create_guild_channel(&channel, path.into_inner(), claims.id)
         .await
-        .and_then(|channel_option| {
-            channel_option
-                .map(CreateChannelResponse::try_from)
-                .transpose()
-        }) {
+    {
         Ok(Some(response)) => HttpResponse::Created().json(response),
         Ok(None) => HttpResponse::NotFound().finish(),
         Err(e) => {
@@ -130,14 +116,7 @@ pub async fn get_guild_channel(
     path: web::Path<(i32, i32)>,
     claims: web::ReqData<Claims>,
 ) -> HttpResponse {
-    match repository
-        .find_channel(path.1, path.0, claims.id)
-        .await
-        .and_then(|channel_option| {
-            channel_option
-                .map(CreateChannelResponse::try_from)
-                .transpose()
-        }) {
+    match repository.find_channel(path.1, path.0, claims.id).await {
         Ok(Some(channel)) => HttpResponse::Ok().json(channel),
         Ok(None) => HttpResponse::NotFound().finish(),
         Err(e) => {
