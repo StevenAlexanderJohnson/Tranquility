@@ -55,7 +55,6 @@ impl LocalFileHandler {
                 Err(e.into())
             }
         }
-        // Ok((file_name, file_path_string.into()))
     }
 
     pub fn delete_file(&self, file_name: &str) -> Result<(), Box<dyn std::error::Error>> {
