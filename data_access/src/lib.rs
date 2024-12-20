@@ -546,7 +546,6 @@ impl DatabaseConnection {
         page_offset: i32,
     ) -> Result<Option<Vec<MessageResponse>>, Box<dyn std::error::Error>> {
         let page_size = 20;
-        println!("User: {}, Guild: {}, Channel: {}, Offset: {}, Page_Number: {}", user_id, guild_id, channel_id, page_size, page_offset);
         self.message
             .get_page(
                 page_size,
