@@ -37,7 +37,6 @@ use data_models::{
     MessageResponse,
 };
 
-
 /// Creates a connection pool to the database
 ///
 /// # Notes
@@ -537,6 +536,37 @@ impl DatabaseConnection {
 
         tx.commit().await?;
         Ok(output)
+    }
+
+    pub async fn get_channel_message(
+        &self,
+        guild_id: i32,
+        channel_id: i32,
+        user_id: i32,
+        page_offset: i32,
+    ) -> Result<Option<Vec<MessageResponse>>, Box<dyn std::error::Error>> {
+        let page_size = 20;
+        println!("User: {}, Guild: {}, Channel: {}, Offset: {}, Page_Number: {}", user_id, guild_id, channel_id, page_size, page_offset);
+        self.message
+            .get_page(
+                page_size,
+                page_offset,
+                user_id,
+                guild_id,
+                channel_id,
+                &self.pool,
+            )
+            .await
+            .map(|message_options| {
+                message_options
+                    .map(|messages| {
+                        messages
+                            .into_iter()
+                            .map(MessageResponse::try_from)
+                            .collect::<Result<Vec<MessageResponse>, _>>()
+                    })
+                    .transpose()
+            })?
     }
 
     pub async fn create_attachment(

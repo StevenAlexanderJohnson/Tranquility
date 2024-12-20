@@ -11,6 +11,7 @@ pub struct CreateMessageRequest {
 pub struct MessageResponse {
     pub id: i32,
     pub author_id: i32,
+    pub author: String,
     pub content: String,
     pub attachments: Vec<String>,
     pub created_date: chrono::DateTime<chrono::Utc>,

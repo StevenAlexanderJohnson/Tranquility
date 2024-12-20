@@ -2,6 +2,7 @@ mod attachment;
 mod auth;
 mod guild;
 mod websocket;
+mod message;
 
 pub fn auth_endpoints() -> actix_web::Scope {
     actix_web::web::scope("/auth")
@@ -28,4 +29,5 @@ pub fn guild_endpoints() -> actix_web::Scope {
         .service(guild::get_guild_channels)
         .service(guild::get_guild_channel)
         .service(guild::create_guild_role)
+        .service(message::get_channel_messages)
 }
