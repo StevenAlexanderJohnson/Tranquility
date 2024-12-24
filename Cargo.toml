@@ -14,3 +14,4 @@ hmac = "0.12"
 sha2 = "0.10"
 
 data_access = {path = "./data_access"}
+dotenv = "0.15.0"

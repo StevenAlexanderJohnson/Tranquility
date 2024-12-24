@@ -2,3 +2,5 @@
 /server/**/Cargo.lock
 
 /**/config.toml
+
+.env
