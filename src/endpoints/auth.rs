@@ -7,7 +7,7 @@ use actix_web::{
 };
 use data_access::{AuthUser, DatabaseConnection};
 
-use data_models::{AuthUserResponse, CreateAuthUserRequest};
+use data_models::{AuthUserResponse, CreateAuthUserRequest, RefreshTokenRequest};
 
 use crate::password_manager::hash_password;
 use crate::{
@@ -93,14 +93,15 @@ pub async fn register(
     }
 }
 
-#[post("/refresh/{token}")]
+#[post("/refresh")]
 pub async fn refresh_token(
+    refresh_req: web::Json<RefreshTokenRequest>,
     repository: web::Data<DatabaseConnection>,
     data: web::ReqData<Claims>,
-    token: web::Path<String>,
 ) -> HttpResponse {
+    let refresh_req = refresh_req.into_inner();
     let auth_user = match repository
-        .refresh_auth_token(data.id, token.into_inner())
+        .refresh_auth_token(data.id, refresh_req.refresh_token)
         .await
     {
         Ok(Some(auth_user)) => auth_user,
