@@ -7,7 +7,7 @@ use actix_web::{
 };
 use data_access::{AuthUser, DatabaseConnection};
 
-use data_models::{AuthUserResponse, CreateAuthUserRequest};
+use data_models::{AuthUserResponse, CreateAuthUserRequest, RefreshTokenRequest};
 
 use crate::password_manager::hash_password;
 use crate::{

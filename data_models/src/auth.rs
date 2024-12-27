@@ -16,3 +16,8 @@ pub struct AuthUserResponse {
     pub refresh_token: String,
     pub websocket_token: String
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RefreshTokenRequest {
+    pub refresh_token: String
+}
