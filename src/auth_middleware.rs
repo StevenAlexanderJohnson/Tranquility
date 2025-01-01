@@ -60,10 +60,7 @@ where
         if !req.path().starts_with("/api/auth/login")
             && !req.path().starts_with("/api/auth/register")
         {
-            let token = req
-                .cookie("auth_token")
-                .map(|cookie| cookie.value().to_string())
-                .or(get_auth_header(&req));
+            let token = get_auth_header(&req);
             if let Some(token) = token {
                 match verify_token(&token) {
                     Ok(claims) => {
