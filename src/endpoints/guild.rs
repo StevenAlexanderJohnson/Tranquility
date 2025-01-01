@@ -1,6 +1,9 @@
 use actix_web::{get, post, web, HttpResponse, ResponseError};
 use data_access::{DatabaseConnection, Guild};
-use data_models::{CreateChannelRequest, CreateGuildRequest, CreateRoleRequest};
+use data_models::{
+    CreateChannelRequest, CreateChannelResponse, CreateGuildRequest, CreateRoleRequest,
+};
+use log::error;
 
 use crate::jwt_handler::Claims;
 
@@ -73,14 +76,15 @@ pub async fn get_guild_channels(
     path: web::Path<i32>,
     claims: web::ReqData<Claims>,
 ) -> HttpResponse {
-    match repository
+    let channels: Result<Option<Vec<CreateChannelResponse>>, _> = repository
         .find_guild_channels(path.into_inner(), claims.id)
-        .await
-    {
-        Ok(Some(guilds)) => HttpResponse::Ok().json(guilds),
+        .await;
+
+    match channels {
+        Ok(Some(channels)) => HttpResponse::Ok().json(channels),
         Ok(None) => HttpResponse::NotFound().finish(),
         Err(e) => {
-            println!("Failed to get guild channels: {}", e);
+            error!("Error collecting user's channels: {:?}", e);
             HttpResponse::InternalServerError().finish()
         }
     }
@@ -91,15 +95,16 @@ pub async fn create_guild_channel(
     repository: web::Data<DatabaseConnection>,
     path: web::Path<i32>,
     claims: web::ReqData<Claims>,
-    mut channel: web::Json<CreateChannelRequest>,
+    channel: web::Json<CreateChannelRequest>,
 ) -> HttpResponse {
-    channel.guild_id = Some(path.into_inner());
-
-    match repository.create_guild_channel(&channel, claims.id).await {
-        Ok(Some(channel)) => HttpResponse::Created().json(channel),
+    match repository
+        .create_guild_channel(&channel, path.into_inner(), claims.id)
+        .await
+    {
+        Ok(Some(response)) => HttpResponse::Created().json(response),
         Ok(None) => HttpResponse::NotFound().finish(),
         Err(e) => {
-            println!("{:?}", e);
+            error!("Error creating guild channel: {:?}", e);
             HttpResponse::InternalServerError().finish()
         }
     }

@@ -10,7 +10,7 @@ use auth::auth_repository::AuthRepository;
 pub use auth::model::AuthUser;
 
 use guilds::guild_repository::GuildRepository;
-pub use guilds::model::{Guild, GuildResponse};
+pub use guilds::model::Guild;
 
 use channel::channel_repository::ChannelRepository;
 pub use channel::model::Channel;
@@ -29,9 +29,12 @@ pub use attachments::model::{Attachment, AttachmentMapping};
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
+use data_models::{CreateChannelResponse, CreateGuildResponse};
+
 use data_models::{
     AttachmentResponse, AuthUserResponse, CreateAuthUserRequest, CreateChannelRequest,
-    CreateGuildRequest, CreateMemberRequest, CreateMessageRequest, CreateRoleRequest, MessageResponse,
+    CreateGuildRequest, CreateMemberRequest, CreateMessageRequest, CreateRoleRequest,
+    MessageResponse,
 };
 
 /// Creates a connection pool to the database
@@ -222,22 +225,25 @@ impl DatabaseConnection {
     pub async fn find_joined_guild(
         &self,
         user_id: i32,
-    ) -> Result<Option<Vec<GuildResponse>>, Box<dyn std::error::Error>> {
+    ) -> Result<Option<Vec<CreateGuildResponse>>, Box<dyn std::error::Error>> {
         match self.guild.find_guilds(user_id, &self.pool).await {
             Ok(Some(guilds)) => {
                 let mut guild_response = guilds
                     .into_iter()
-                    .map(GuildResponse::try_from)
+                    .map(CreateGuildResponse::try_from)
                     .collect::<Result<Vec<_>, _>>()?;
 
                 for guild in &mut guild_response {
-                    guild.channels = match self.find_guild_channels(guild.id, user_id).await {
-                        Ok(channels) => channels.unwrap_or_default(),
-                        Err(e) => {
-                            println!("{:?}", e);
-                            return Err("".into());
-                        }
-                    };
+                    let channels: Vec<CreateChannelResponse> =
+                        match self.find_guild_channels(guild.id, user_id).await {
+                            Ok(Some(channels)) => channels,
+                            Ok(None) => vec![],
+                            Err(e) => {
+                                println!("{:?}", e);
+                                return Err("".into());
+                            }
+                        };
+                    guild.channels = channels;
                 }
 
                 Ok(Some(guild_response))
@@ -260,12 +266,12 @@ impl DatabaseConnection {
     pub async fn find_owned_guilds(
         &self,
         user_id: i32,
-    ) -> Result<Option<Vec<GuildResponse>>, Box<dyn std::error::Error>> {
+    ) -> Result<Option<Vec<CreateGuildResponse>>, Box<dyn std::error::Error>> {
         match self.guild.find_owner_guilds(user_id, &self.pool).await {
             Ok(Some(guild)) => {
                 let mut guilds = guild
                     .into_iter()
-                    .map(GuildResponse::try_from)
+                    .map(CreateGuildResponse::try_from)
                     .collect::<Result<Vec<_>, _>>()?;
                 for guild in &mut guilds {
                     guild.channels = match self.find_guild_channels(guild.id, user_id).await {
@@ -304,23 +310,24 @@ impl DatabaseConnection {
         &self,
         guild_id: i32,
         member_id: i32,
-    ) -> Result<Option<GuildResponse>, Box<dyn std::error::Error>> {
-        match self.guild.find_by_id(guild_id, member_id, &self.pool).await {
-            Ok(Some(guild)) => {
-                let mut guild = GuildResponse::try_from(guild)?;
-                guild.channels = match self.find_guild_channels(guild_id, member_id).await {
-                    Ok(channels) => channels.unwrap_or_default(),
-                    Err(e) => {
-                        println!("{:?}", e);
-                        return Err("".into());
-                    }
-                };
+    ) -> Result<Option<CreateGuildResponse>, Box<dyn std::error::Error>> {
+        let mut guild: CreateGuildResponse =
+            match self.guild.find_by_id(guild_id, member_id, &self.pool).await {
+                Ok(Some(guild)) => guild.try_into(),
+                Ok(None) => {
+                    return Ok(None);
+                }
+                Err(e) => {
+                    return Err(e);
+                }
+            }?;
 
-                Ok(Some(guild))
-            }
-            Ok(None) => Ok(None),
-            Err(e) => Err(e),
-        }
+        guild.channels = match self.find_guild_channels(guild_id, member_id).await? {
+            Some(channels) => channels,
+            None => vec![],
+        };
+
+        Ok(Some(guild))
     }
 
     /// Creates a new guild in the database.
@@ -342,7 +349,7 @@ impl DatabaseConnection {
         &self,
         guild: &CreateGuildRequest,
         owner_id: i32,
-    ) -> Result<Guild, Box<dyn std::error::Error>> {
+    ) -> Result<CreateGuildResponse, Box<dyn std::error::Error>> {
         let mut tx = self.pool.begin().await?;
 
         let guild = match self.guild.insert(guild, owner_id, &mut tx).await {
@@ -372,17 +379,27 @@ impl DatabaseConnection {
 
         tx.commit().await?;
 
-        Ok(guild)
+        Ok(CreateGuildResponse::try_from(guild)?)
     }
 
     pub async fn find_guild_channels(
         &self,
         guild_id: i32,
         user_id: i32,
-    ) -> Result<Option<Vec<Channel>>, Box<dyn std::error::Error>> {
+    ) -> Result<Option<Vec<CreateChannelResponse>>, Box<dyn std::error::Error>> {
         self.channel
             .find_guild_channels(guild_id, user_id, &self.pool)
             .await
+            .map(|opt_channels| {
+                opt_channels
+                    .map(|channels| {
+                        channels
+                            .into_iter()
+                            .map(|channel| CreateChannelResponse::try_from(channel))
+                            .collect::<Result<Vec<CreateChannelResponse>, _>>()
+                    })
+                    .transpose()
+            })?
     }
 
     pub async fn find_channel(
@@ -390,19 +407,26 @@ impl DatabaseConnection {
         channel_id: i32,
         guild_id: i32,
         user_id: i32,
-    ) -> Result<Option<Channel>, Box<dyn std::error::Error>> {
+    ) -> Result<Option<CreateChannelResponse>, Box<dyn std::error::Error>> {
         self.channel
             .find_channel(channel_id, guild_id, user_id, &self.pool)
             .await
+            .and_then(|option| option.map(CreateChannelResponse::try_from).transpose())
     }
 
     pub async fn create_guild_channel(
         &self,
         channel: &CreateChannelRequest,
+        guild_id: i32,
         user_id: i32,
-    ) -> Result<Option<Channel>, Box<dyn std::error::Error>> {
+    ) -> Result<Option<CreateChannelResponse>, Box<dyn std::error::Error>> {
         let mut tx = self.pool.begin().await?;
-        match self.channel.insert(channel, user_id, &mut tx).await {
+        match self
+            .channel
+            .insert(channel, guild_id, user_id, &mut tx)
+            .await
+            .and_then(|option| option.map(CreateChannelResponse::try_from).transpose())
+        {
             Ok(x) => {
                 tx.commit().await?;
                 Ok(x)
@@ -512,6 +536,36 @@ impl DatabaseConnection {
 
         tx.commit().await?;
         Ok(output)
+    }
+
+    pub async fn get_channel_message(
+        &self,
+        guild_id: i32,
+        channel_id: i32,
+        user_id: i32,
+        page_offset: i32,
+    ) -> Result<Option<Vec<MessageResponse>>, Box<dyn std::error::Error>> {
+        let page_size = 20;
+        self.message
+            .get_page(
+                page_size,
+                page_offset,
+                user_id,
+                guild_id,
+                channel_id,
+                &self.pool,
+            )
+            .await
+            .map(|message_options| {
+                message_options
+                    .map(|messages| {
+                        messages
+                            .into_iter()
+                            .map(MessageResponse::try_from)
+                            .collect::<Result<Vec<MessageResponse>, _>>()
+                    })
+                    .transpose()
+            })?
     }
 
     pub async fn create_attachment(

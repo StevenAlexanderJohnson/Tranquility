@@ -10,6 +10,7 @@ use sqlx::{
 pub struct Message {
     pub id: Option<i32>,
     pub channel_id: Option<i32>,
+    pub author: Option<String>,
     pub author_id: Option<i32>,
     pub content: Option<String>,
     pub created_date: Option<DateTime<Utc>>,
@@ -23,6 +24,9 @@ impl TryFrom<Message> for MessageResponse {
         Ok(Self {
             id: value.id.ok_or::<Self::Error>(
                 "ID was not provided while casting Message to MessageResponse".into(),
+            )?,
+            author: value.author.ok_or::<Self::Error>(
+                "Author was not provided while casting Message to MessageREsponse".into()
             )?,
             author_id: value.author_id.ok_or::<Self::Error>(
                 "Author ID was not provided while casting Message to MessageResponse".into(),
