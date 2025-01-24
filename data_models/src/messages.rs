@@ -7,7 +7,7 @@ pub struct CreateMessageRequest {
     pub attachments: Vec<i32>
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct MessageResponse {
     pub id: i32,
     pub author_id: i32,

@@ -1,0 +1,13 @@
+[package]
+name = "notifications"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-ws = "0.3"
+tokio = {version = "1.43.0", features=["rt", "time", "macros"]}
+data_models = {path="../data_models"}
+serde = "1.0.208"
+chrono = { version = "0.4", features = ["serde"] }
+actix-web = "4"
+log = "0.4.22"
