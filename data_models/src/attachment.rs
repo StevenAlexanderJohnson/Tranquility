@@ -6,5 +6,5 @@ pub struct AttachmentResponse {
     pub file_name: String,
     pub file_size: i64,
     pub mime_type: String,
-    pub created_date: chrono::DateTime<chrono::Utc>
+    pub created_date: chrono::DateTime<chrono::Utc>,
 }

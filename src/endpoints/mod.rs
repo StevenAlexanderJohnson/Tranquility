@@ -1,8 +1,8 @@
 mod attachment;
 mod auth;
 mod guild;
-mod websocket;
 mod message;
+mod websocket;
 
 pub fn auth_endpoints() -> actix_web::Scope {
     actix_web::web::scope("/auth")

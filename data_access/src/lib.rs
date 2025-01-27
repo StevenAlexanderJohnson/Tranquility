@@ -445,10 +445,11 @@ impl DatabaseConnection {
     ) -> Result<CreateMemberResponse, Box<dyn std::error::Error>> {
         let mut tx = self.pool.begin().await?;
         match self
-        .member
-        .add_user_to_guild(member, user_id, &mut tx)
-        .await
-        .and_then(CreateMemberResponse::try_from) {
+            .member
+            .add_user_to_guild(member, user_id, &mut tx)
+            .await
+            .and_then(CreateMemberResponse::try_from)
+        {
             Ok(x) => {
                 tx.commit().await?;
                 Ok(x)

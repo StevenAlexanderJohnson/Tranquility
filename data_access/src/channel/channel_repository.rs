@@ -67,7 +67,7 @@ impl ChannelRepository {
             "SELECT c.id, c.name, c.message_count, c.guild_id, c.created_date, c.updated_date
             FROM channel c
             JOIN member m on c.guild_id = m.guild_id
-            WHERE c.id = $1 AND m.user_id = $2 AND c.guild_id = $3"
+            WHERE c.id = $1 AND m.user_id = $2 AND c.guild_id = $3",
         )
         .bind(channel_id)
         .bind(user_id)

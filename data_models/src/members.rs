@@ -10,5 +10,5 @@ pub struct CreateMemberRequest {
 pub struct CreateMemberResponse {
     pub user_id: i32,
     pub guild_id: i32,
-    pub created_date: chrono::DateTime<chrono::Utc>
+    pub created_date: chrono::DateTime<chrono::Utc>,
 }

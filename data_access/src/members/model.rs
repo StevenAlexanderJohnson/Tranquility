@@ -19,15 +19,20 @@ pub struct Member {
     pub updated_date: Option<DateTime<Utc>>,
 }
 
-
 impl TryFrom<Member> for CreateMemberResponse {
     type Error = Box<dyn std::error::Error>;
 
     fn try_from(value: Member) -> Result<Self, Self::Error> {
         Ok(Self {
-            user_id: value.user_id.ok_or("User ID was not provided while casting from Member to CreateMemberResponse")?,
-            guild_id: value.guild_id.ok_or("Guild ID was not provided while casting from Member to CreateMemberResponse")?,
-            created_date: value.created_date.ok_or("Created Date was not provided while casting from Member to CreateMemberResponse")?
+            user_id: value.user_id.ok_or(
+                "User ID was not provided while casting from Member to CreateMemberResponse",
+            )?,
+            guild_id: value.guild_id.ok_or(
+                "Guild ID was not provided while casting from Member to CreateMemberResponse",
+            )?,
+            created_date: value.created_date.ok_or(
+                "Created Date was not provided while casting from Member to CreateMemberResponse",
+            )?,
         })
     }
 }
