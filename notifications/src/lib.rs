@@ -48,7 +48,7 @@ impl WebsocketServer {
     }
 
     async fn send_system_message(&self, msg: WebsocketResponseData) {
-        for (_, tx) in &self.sessions {
+        for tx in self.sessions.values() {
             let msg = msg.clone();
             let _ = tx.send(msg).unwrap();
         }
@@ -124,8 +124,8 @@ impl WebsocketServerHandler {
         self.cmd_tx
             .send(Command::Connect {
                 user_id,
-                conn_tx: conn_tx,
-                res_tx: res_tx,
+                conn_tx,
+                res_tx,
             })
             .unwrap();
 
@@ -147,12 +147,7 @@ impl WebsocketServerHandler {
     pub async fn send_message(&self, msg: WebsocketResponseData) {
         let (res_tx, res_rx) = oneshot::channel();
 
-        self.cmd_tx
-            .send(Command::Message {
-                msg: msg,
-                res_tx: res_tx,
-            })
-            .unwrap();
+        self.cmd_tx.send(Command::Message { msg, res_tx }).unwrap();
 
         res_rx.await.unwrap();
     }

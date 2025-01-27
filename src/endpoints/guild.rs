@@ -1,4 +1,4 @@
-use actix_web::{get, post, web, HttpRequest, HttpResponse, ResponseError};
+use actix_web::{get, post, web, HttpResponse, ResponseError};
 use data_access::{DatabaseConnection, Guild};
 use data_models::{
     CreateChannelRequest, CreateChannelResponse, CreateGuildRequest, CreateMemberRequest,

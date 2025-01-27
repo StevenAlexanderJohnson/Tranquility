@@ -26,7 +26,6 @@ impl GuildRepository {
         .bind(member_id)
         .fetch_one(pool)
         .await
-        .map_err(|e| e.into())
         {
             Ok(guild) => Ok(Some(guild)),
             Err(sqlx::Error::RowNotFound) => Ok(None),

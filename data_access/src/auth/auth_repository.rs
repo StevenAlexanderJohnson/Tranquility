@@ -64,7 +64,7 @@ impl<'a> AuthRepository {
         match sqlx::query_as::<_, AuthUser>(
             "UPDATE auth SET refresh_token = md5(random()::text), websocket_token = md5(random()::text), updated_date = NOW() AT TIME ZONE 'utc' WHERE id = $1 AND refresh_token = $2 RETURNING id, username, email, refresh_token, websocket_token, updated_date;"
         )
-        .bind(&user_id)
+        .bind(user_id)
         .bind(&token)
         .fetch_one(&mut **tx).await {
             Ok(user) => Ok(Some(user)),

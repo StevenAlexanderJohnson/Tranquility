@@ -23,7 +23,7 @@ impl ChannelRepository {
         )
         .bind(&channel.name)
         .bind(guild_id)
-        .bind(&user_id)
+        .bind(user_id)
         .fetch_one(&mut **tx)
         .await
         {
