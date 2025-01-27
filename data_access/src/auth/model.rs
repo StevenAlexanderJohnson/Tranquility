@@ -48,8 +48,12 @@ impl TryFrom<AuthUser> for AuthUserResponse {
             id: value.id.ok_or("Id was not returned from the database")?,
             username: value.username,
             token: String::from(""),
-            refresh_token: value.refresh_token.ok_or("Refresh token was not provided from the database")?,
-            websocket_token: value.websocket_token.ok_or("Websocket token was not provided from the database")?
+            refresh_token: value
+                .refresh_token
+                .ok_or("Refresh token was not provided from the database")?,
+            websocket_token: value
+                .websocket_token
+                .ok_or("Websocket token was not provided from the database")?,
         })
     }
 }

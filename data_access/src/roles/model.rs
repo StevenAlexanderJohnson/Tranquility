@@ -28,7 +28,6 @@ pub struct Role {
     pub updated_date: Option<DateTime<Utc>>,
 }
 
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RoleResult {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -39,5 +38,5 @@ pub struct RoleResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_date: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub updated_date: Option<DateTime<Utc>>
+    pub updated_date: Option<DateTime<Utc>>,
 }

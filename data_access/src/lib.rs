@@ -29,7 +29,7 @@ pub use attachments::model::{Attachment, AttachmentMapping};
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
-use data_models::{CreateChannelResponse, CreateGuildResponse};
+use data_models::{CreateChannelResponse, CreateGuildResponse, CreateMemberResponse};
 
 use data_models::{
     AttachmentResponse, AuthUserResponse, CreateAuthUserRequest, CreateChannelRequest,
@@ -123,10 +123,7 @@ impl DatabaseConnection {
         &self,
         user: &CreateAuthUserRequest,
     ) -> Result<AuthUser, Box<dyn std::error::Error>> {
-        self.auth
-            .insert(user, &self.pool)
-            .await
-            .map_err(|e| e.into())
+        self.auth.insert(user, &self.pool).await
     }
 
     /// Logs a user in by checking the auth table in the database.
@@ -322,10 +319,10 @@ impl DatabaseConnection {
                 }
             }?;
 
-        guild.channels = match self.find_guild_channels(guild_id, member_id).await? {
-            Some(channels) => channels,
-            None => vec![],
-        };
+        guild.channels = self
+            .find_guild_channels(guild_id, member_id)
+            .await?
+            .unwrap_or_default();
 
         Ok(Some(guild))
     }
@@ -379,7 +376,7 @@ impl DatabaseConnection {
 
         tx.commit().await?;
 
-        Ok(CreateGuildResponse::try_from(guild)?)
+        CreateGuildResponse::try_from(guild)
     }
 
     pub async fn find_guild_channels(
@@ -395,7 +392,7 @@ impl DatabaseConnection {
                     .map(|channels| {
                         channels
                             .into_iter()
-                            .map(|channel| CreateChannelResponse::try_from(channel))
+                            .map(CreateChannelResponse::try_from)
                             .collect::<Result<Vec<CreateChannelResponse>, _>>()
                     })
                     .transpose()
@@ -426,6 +423,29 @@ impl DatabaseConnection {
             .insert(channel, guild_id, user_id, &mut tx)
             .await
             .and_then(|option| option.map(CreateChannelResponse::try_from).transpose())
+        {
+            Ok(x) => {
+                tx.commit().await?;
+                Ok(x)
+            }
+            Err(e) => {
+                tx.rollback().await?;
+                Err(e)
+            }
+        }
+    }
+
+    pub async fn create_guild_member(
+        &self,
+        member: &CreateMemberRequest,
+        user_id: i32,
+    ) -> Result<CreateMemberResponse, Box<dyn std::error::Error>> {
+        let mut tx = self.pool.begin().await?;
+        match self
+            .member
+            .add_user_to_guild(member, user_id, &mut tx)
+            .await
+            .and_then(CreateMemberResponse::try_from)
         {
             Ok(x) => {
                 tx.commit().await?;
@@ -504,7 +524,7 @@ impl DatabaseConnection {
                 .create_message_attachment_mapping(
                     &AttachmentMapping {
                         post_id: output.id,
-                        attachment_id: attachment_id,
+                        attachment_id,
                     },
                     &mut tx,
                 )
@@ -518,8 +538,7 @@ impl DatabaseConnection {
             };
         }
 
-        if message.attachments.len() > 0 {
-            // output.attachments = self.get_post_attachment(output.id).await.iter();
+        if !message.attachments.is_empty() {
             let attachments = self
                 .attachment
                 .get_message_attachments(output.id, &mut tx)
@@ -600,7 +619,7 @@ impl DatabaseConnection {
             .get_message_attachments(post_id, &mut tx)
             .await?
             .iter()
-            .map(|x| AttachmentResponse::try_from(x))
+            .map(AttachmentResponse::try_from)
             .collect::<Result<Vec<AttachmentResponse>, _>>();
         println!("GET POST: {} {:?}", post_id, output);
         output

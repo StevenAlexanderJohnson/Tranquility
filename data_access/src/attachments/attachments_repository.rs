@@ -21,7 +21,7 @@ impl AttachmentsRepository {
         )
         .bind(&attachment.file_name)
         .bind(&attachment.file_path)
-        .bind(&attachment.file_size)
+        .bind(attachment.file_size)
         .bind(&attachment.mime_type)
         .bind(user_id)
         .fetch_one(&mut **tx)
@@ -47,8 +47,8 @@ impl AttachmentsRepository {
             VALUES ($1, $2);
             "#,
         )
-        .bind(&mapping.post_id)
-        .bind(&mapping.attachment_id)
+        .bind(mapping.post_id)
+        .bind(mapping.attachment_id)
         .execute(&mut **tx)
         .await
         {

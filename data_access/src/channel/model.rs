@@ -35,7 +35,7 @@ impl TryFrom<Channel> for CreateChannelResponse {
             )?,
             updated_date: value.updated_date.ok_or(
                 "Updated Date was not provided while casting Channel to CreateCHannelResponse",
-            )?
+            )?,
         })
     }
 }

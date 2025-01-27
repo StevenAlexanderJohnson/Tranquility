@@ -1,9 +1,9 @@
 use sqlx::{Postgres, Transaction};
 
-use crate::{Role, Intent};
+use crate::{Intent, Role};
 
 #[derive(Clone)]
-pub struct RoleRepository{}
+pub struct RoleRepository {}
 
 impl RoleRepository {
     pub async fn create_role(
@@ -18,7 +18,7 @@ impl RoleRepository {
             INSERT INTO role (guild_id, name) 
             SELECT $1, $2 WHERE EXISTS (SELECT 1 FROM guild WHERE owner_id = $3)
             RETURNING id, name, guild_id, created_date, updated_date;
-            "#
+            "#,
         )
         .bind(guild_id)
         .bind(name)
@@ -39,13 +39,13 @@ impl RoleRepository {
             r#"
             INSERT INTO role_intent (role_id, value)
             SELECT $1, $2 WHERE EXISTS (SELECT 1 FROM guild WHERE owner_id = $3)
-            RETURNING id, role_id, value, created_date, updated_date;"#
+            RETURNING id, role_id, value, created_date, updated_date;"#,
         )
-            .bind(role_id)
-            .bind(intent)
-            .bind(user_id)
-            .fetch_one(&mut **tx)
-            .await
-            .map_err(|e| e.into())
+        .bind(role_id)
+        .bind(intent)
+        .bind(user_id)
+        .fetch_one(&mut **tx)
+        .await
+        .map_err(|e| e.into())
     }
 }

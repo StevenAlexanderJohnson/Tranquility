@@ -26,7 +26,7 @@ impl TryFrom<Message> for MessageResponse {
                 "ID was not provided while casting Message to MessageResponse".into(),
             )?,
             author: value.author.ok_or::<Self::Error>(
-                "Author was not provided while casting Message to MessageREsponse".into()
+                "Author was not provided while casting Message to MessageREsponse".into(),
             )?,
             author_id: value.author_id.ok_or::<Self::Error>(
                 "Author ID was not provided while casting Message to MessageResponse".into(),

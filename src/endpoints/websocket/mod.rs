@@ -181,7 +181,7 @@ async fn handle_json_request(
     let output: Result<WebsocketResponseData, Box<dyn std::error::Error>> = match message {
         WebsocketMessageData::Channel(_) => Ok(WebsocketResponseData::Ack("Ack".to_string())),
         WebsocketMessageData::Guild(_) => Ok(WebsocketResponseData::Ack("Ack".to_string())),
-        WebsocketMessageData::Message(m) => handle_message(&m, user_id, repository)
+        WebsocketMessageData::Message(m) => handle_message(m, user_id, repository)
             .await
             .map(WebsocketResponseData::Message),
         WebsocketMessageData::Ack(_) => Ok(WebsocketResponseData::Ack("Ack".to_string())),

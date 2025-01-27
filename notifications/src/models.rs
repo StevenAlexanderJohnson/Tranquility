@@ -1,5 +1,7 @@
 use chrono::{DateTime, Utc};
-use data_models::{CreateChannelRequest, CreateGuildRequest, CreateMessageRequest, MessageResponse};
+use data_models::{
+    CreateChannelRequest, CreateGuildRequest, CreateMessageRequest, MessageResponse,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -24,7 +26,7 @@ pub enum WebsocketMessageData {
 pub enum WebsocketMessage {
     Data(WebsocketMessageData),
     #[serde(rename = "ping", alias = "Ping")]
-    Ping(String)
+    Ping(String),
 }
 // pub struct WebSocketMessage {
 //     pub data: WebsocketMessageData,

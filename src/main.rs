@@ -8,7 +8,11 @@ use std::io::ErrorKind;
 
 use actix_cors::Cors;
 use actix_web::{
-    dev::Service, middleware::Logger, rt::spawn, web::{scope, Data}, App, HttpServer
+    dev::Service,
+    middleware::Logger,
+    rt::spawn,
+    web::{scope, Data},
+    App, HttpServer,
 };
 use auth_middleware::Auth;
 use data_access::DatabaseConnection;
@@ -30,7 +34,6 @@ async fn main() -> std::io::Result<()> {
         .check_destination()
         .map_err(|e| std::io::Error::new(ErrorKind::InvalidInput, e.to_string()))?;
     info!("File destination is valid and ready\n");
-    
 
     let (chat_server, server_tx) = notifications::WebsocketServer::new();
     let chat_server = spawn(chat_server.run());

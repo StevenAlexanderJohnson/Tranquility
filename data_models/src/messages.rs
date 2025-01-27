@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 pub struct CreateMessageRequest {
     pub channel_id: i32,
     pub content: String,
-    pub attachments: Vec<i32>
+    pub attachments: Vec<i32>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
