@@ -8,7 +8,7 @@ mod guilds;
 pub use guilds::{CreateGuildRequest, CreateGuildResponse};
 
 mod members;
-pub use members::CreateMemberRequest;
+pub use members::{CreateMemberRequest, CreateMemberResponse};
 
 mod messages;
 pub use messages::{CreateMessageRequest, MessageResponse};

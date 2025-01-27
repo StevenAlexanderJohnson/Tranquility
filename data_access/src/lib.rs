@@ -29,7 +29,7 @@ pub use attachments::model::{Attachment, AttachmentMapping};
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
-use data_models::{CreateChannelResponse, CreateGuildResponse};
+use data_models::{CreateChannelResponse, CreateGuildResponse, CreateMemberResponse};
 
 use data_models::{
     AttachmentResponse, AuthUserResponse, CreateAuthUserRequest, CreateChannelRequest,
@@ -427,6 +427,28 @@ impl DatabaseConnection {
             .await
             .and_then(|option| option.map(CreateChannelResponse::try_from).transpose())
         {
+            Ok(x) => {
+                tx.commit().await?;
+                Ok(x)
+            }
+            Err(e) => {
+                tx.rollback().await?;
+                Err(e)
+            }
+        }
+    }
+
+    pub async fn create_guild_member(
+        &self,
+        member: &CreateMemberRequest,
+        user_id: i32,
+    ) -> Result<CreateMemberResponse, Box<dyn std::error::Error>> {
+        let mut tx = self.pool.begin().await?;
+        match self
+        .member
+        .add_user_to_guild(member, user_id, &mut tx)
+        .await
+        .and_then(CreateMemberResponse::try_from) {
             Ok(x) => {
                 tx.commit().await?;
                 Ok(x)

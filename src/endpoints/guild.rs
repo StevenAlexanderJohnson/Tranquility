@@ -1,7 +1,7 @@
-use actix_web::{get, post, web, HttpResponse, ResponseError};
+use actix_web::{get, post, web, HttpRequest, HttpResponse, ResponseError};
 use data_access::{DatabaseConnection, Guild};
 use data_models::{
-    CreateChannelRequest, CreateChannelResponse, CreateGuildRequest, CreateRoleRequest,
+    CreateChannelRequest, CreateChannelResponse, CreateGuildRequest, CreateMemberRequest, CreateRoleRequest
 };
 use log::error;
 
@@ -142,6 +142,26 @@ pub async fn create_guild_role(
         Ok(None) => HttpResponse::BadRequest().finish(),
         Err(e) => {
             println!("{:?}", e);
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}
+
+#[post("/{guild_id}/member")]
+pub async fn add_guild_member(
+    repository: web::Data<DatabaseConnection>,
+    path: web::Path<i32>,
+    claims: web::ReqData<Claims>,
+    member: web::Json<CreateMemberRequest>,
+) -> HttpResponse {
+    if member.guild_id != path.into_inner() {
+        return HttpResponse::BadRequest().finish();
+    }
+
+    match repository.create_guild_member(&member, claims.id).await {
+        Ok(member) => HttpResponse::Created().json(member),
+        Err(e) => {
+            error!("Error creating guild membership: {:?}", e);
             HttpResponse::InternalServerError().finish()
         }
     }
