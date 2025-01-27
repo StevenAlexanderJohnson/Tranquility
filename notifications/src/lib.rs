@@ -94,9 +94,6 @@ impl WebsocketServer {
                 Command::Disconnect { conn, res_tx } => {
                     self.disconnect(conn, res_tx).await;
                 }
-                Command::List { res_tx } => {
-                    let _ = res_tx.send(self.list_connected().await).unwrap();
-                }
                 Command::Message { msg, res_tx } => {
                     self.send_system_message(msg).await;
                     let _ = res_tx.send(()).unwrap();
