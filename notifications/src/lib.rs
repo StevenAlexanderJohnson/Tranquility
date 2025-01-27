@@ -22,10 +22,6 @@ enum Command {
         res_tx: oneshot::Sender<()>,
     },
 
-    List {
-        res_tx: oneshot::Sender<Vec<ConnId>>,
-    },
-
     Message {
         msg: WebsocketResponseData,
         res_tx: oneshot::Sender<()>,
@@ -156,7 +152,6 @@ impl WebsocketServerHandler {
     }
 
     pub async fn send_message(&self, msg: WebsocketResponseData) {
-        println!("Sending System Message: {:?}", msg);
         let (res_tx, res_rx) = oneshot::channel();
 
         self.cmd_tx
@@ -167,6 +162,5 @@ impl WebsocketServerHandler {
             .unwrap();
 
         res_rx.await.unwrap();
-        println!("Finished sending all the messages");
     }
 }

@@ -7,7 +7,7 @@ use actix_web::{error::ErrorUnauthorized, get, rt, web, Error, HttpRequest, Http
 
 use actix_ws::{AggregatedMessage, CloseCode, CloseReason};
 use data_access::DatabaseConnection;
-use log::error;
+use log::{error, info};
 use message::handle_message;
 use notifications::{
     models::{WebsocketMessage, WebsocketMessageData, WebsocketResponseData},
@@ -42,13 +42,13 @@ pub async fn gateway(
             return Err(e);
         }
     };
-    println!("WebSocket connection initiated");
+    info!("WebSocket connection initiated");
 
     // Login with path variables
     let user = match repository.websocket_login(path.0, &path.1).await {
         Ok(user) => user,
         Err(e) => {
-            println!("Error while logging in in websocket: {:?}", e);
+            error!("Error while logging in in websocket: {:?}", e);
             let _ = session
                 .close(Some(CloseReason {
                     code: actix_ws::CloseCode::Invalid,
@@ -88,7 +88,6 @@ pub async fn gateway(
 
                                     if let WebsocketMessage::Ping(_) = message {
                                         last_heartbeat = Instant::now();
-                                        println!("Ping received, {}", user.id);
                                         session.pong(b"").await.unwrap();
                                         continue;
                                     }
@@ -104,16 +103,16 @@ pub async fn gateway(
                                 }
                                 AggregatedMessage::Ping(msg) => {
                                     last_heartbeat = Instant::now();
-                                    println!("Ping received, {}", user.id);
+                                    info!("Ping received, {}", user.id);
                                     session.pong(&msg).await.unwrap()
                                 }
                                 AggregatedMessage::Close(msg) => {
-                                    println!("Session Closed");
+                                    info!("Session Closed");
                                     session.close(msg).await.unwrap();
                                     break DisconnectReason::Disconnect;
                                 }
                                 _ => {
-                                    println!("How did you get here")
+                                    error!("How did you get here")
                                 }
                             }
                         },
@@ -130,7 +129,6 @@ pub async fn gateway(
                 // Handles messages coming from the server to the websocket.
                 msg = conn_rx.recv() => {
                     let mut session = session.clone();
-                    println!("sending notification: {:?}", msg);
                     session
                         .text(serde_json::to_string(&msg).expect("Unable to stringify message"))
                         .await
