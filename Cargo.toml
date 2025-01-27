@@ -3,9 +3,17 @@ name = "chat"
 version = "0.1.0"
 edition = "2021"
 
+[workspace]
+members = [
+    "notifications",
+    "data_access",
+    "data_models"
+]
+
 [dependencies]
 actix-web = "4"
 actix-ws = "0.3"
+actix-cors = "0.7.0"
 actix-multipart = "0.7.2"
 sanitize-filename = "0.6.0"
 serde = "1.0.208"
@@ -17,7 +25,8 @@ sha2 = "0.10"
 argon2 = "0.5"
 env_logger = "0.11.5"
 log = "0.4.22"
+tokio = {version = "1.43.0", features=["rt", "time", "macros"]}
 
 data_access = {path = "./data_access"}
 data_models = {path = "./data_models"}
-actix-cors = "0.7.0"
+notifications = {path = "./notifications"}
