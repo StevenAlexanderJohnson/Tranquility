@@ -54,10 +54,6 @@ impl WebsocketServer {
         }
     }
 
-    async fn list_connected(&self) -> Vec<ConnId> {
-        return self.sessions.keys().cloned().collect();
-    }
-
     async fn connect(&mut self, user_id: ConnId, tx: mpsc::UnboundedSender<WebsocketResponseData>) {
         log::info!("Someone joined");
 
